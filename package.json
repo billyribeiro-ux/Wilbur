@@ -20,6 +20,7 @@
     "test:load": "k6 run tests/load-test.js",
     "test:security": "npm audit && snyk test",
     "test:all": "npm run test:unit && npm run test:e2e && npm run test:security",
+    "validate:env": "node scripts/validate-env.mjs",
     "validate:production": "tsx scripts/production-validation.ts",
     "preflight": "bash scripts/pre-flight-check.sh",
     "validate:db": "tsx scripts/validate-database-queries.ts",
