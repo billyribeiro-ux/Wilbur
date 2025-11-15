@@ -1,0 +1,87 @@
+/* ============================================================================
+   WHITEBOARD FOCUS STYLES - No Orange Borders
+   ============================================================================
+   Ensures WCAG AA compliance with focus-visible only
+   No orange outlines anywhere
+   ============================================================================ */
+
+/* Remove default focus outlines on mouse interaction */
+.wb-emoji-picker button:focus:not(:focus-visible),
+.wb-emoji-grid button:focus:not(:focus-visible),
+.wb-emoji-handle:focus:not(:focus-visible),
+.wb-toolbar button:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Show focus rings only on keyboard navigation */
+.wb-emoji-picker button:focus-visible,
+.wb-emoji-grid button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+.wb-toolbar button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* Emoji selection handles - no outlines */
+.wb-emoji-handle {
+  outline: none;
+  touch-action: none;
+}
+
+.wb-emoji-handle:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Prevent orange/default browser focus styles */
+*:focus {
+  outline-color: transparent;
+}
+
+*:focus-visible {
+  outline-color: #3b82f6;
+}
+
+/* Emoji picker specific */
+.wb-emoji-picker {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wb-emoji-picker button {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Touch action for emoji handles during transform */
+.wb-emoji-transforming {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Presenter-only elements (not recorded) */
+.wb-presenter-only {
+  pointer-events: auto;
+}
+
+/* Ensure no orange anywhere */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline-color: #3b82f6 !important;
+}
+
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
+  outline: none !important;
+}

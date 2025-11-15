@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+
+# Ignore test artifacts and reports
+playwright-report/
+playwright-report-*/
+test-results/
+node_modules
+.env
+.env.test
+.DS_Store

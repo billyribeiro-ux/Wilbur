@@ -1,0 +1,19 @@
+/* ============================================================================
+   WHITEBOARD CANVAS - Layout hardening (L65 grade)
+   ============================================================================
+   Prevents accidental layout drift that breaks pointer alignment.
+   ============================================================================ */
+
+canvas {
+  display: block;
+  box-sizing: content-box;  /* absolutely required - no border-box */
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+/* Prevent any ancestor transforms from breaking pointer math */
+.whiteboard-surface {
+  transform: none !important;
+  zoom: 1 !important;
+}
