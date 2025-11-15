@@ -82,7 +82,7 @@ export function hitTestEmoji(
   }
   
   // Check body (with some padding for easier selection)
-  const padding = 5 / viewport.zoom;
+  const padding = 2 / viewport.zoom;
   if (
     Math.abs(localX) < halfSize + padding &&
     Math.abs(localY) < halfSize + padding
@@ -170,7 +170,7 @@ export function hitTestText(
   const halfHeight = height / 2;
   
   // Check body with padding
-  const padding = 5 / zoom;
+  const padding = 2 / zoom;
   return (
     Math.abs(localX) < halfWidth + padding &&
     Math.abs(localY) < halfHeight + padding

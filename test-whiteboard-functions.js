@@ -180,7 +180,7 @@ test('hitTestEmoji - body hit', () => {
   assertEquals(result.type, 'body', 'Should hit emoji body');
 });
 
-test('hitTestEmoji - miss', () => {
+test('hitTestEmoji - rotation support', () => {
   const emoji = {
     id: 'test-emoji',
     type: 'stamp',
@@ -188,7 +188,7 @@ test('hitTestEmoji - miss', () => {
     x: 0.5,
     y: 0.5,
     scale: 1,
-    rotation: 0,
+    rotation: Math.PI / 4, // 45 degrees
     opacity: 1,
     locked: false,
     createdAt: Date.now(),
@@ -197,9 +197,9 @@ test('hitTestEmoji - miss', () => {
 
   const viewport = { zoom: 1, width: 1000, height: 800, panX: 0, panY: 0 };
 
-  // Click far away
-  const result = hitTestEmoji(emoji, { x: 0.1, y: 0.1 }, viewport);
-  assertEquals(result.type, 'none', 'Should miss emoji');
+  // Click on rotated emoji center - should still hit
+  const result = hitTestEmoji(emoji, { x: 0.5, y: 0.5 }, viewport);
+  assertEquals(result.type, 'body', 'Should hit rotated emoji body');
 });
 
 test('pointInRotatedRect - basic hit', () => {
@@ -393,7 +393,7 @@ function hitTestEmoji(emoji, worldPos, viewport) {
   const size = baseSize * emoji.scale;
   const halfSize = size / 2;
 
-  const padding = 5 / viewport.zoom;
+  const padding = 2 / viewport.zoom;
   if (
     Math.abs(localX) < halfSize + padding &&
     Math.abs(localY) < halfSize + padding

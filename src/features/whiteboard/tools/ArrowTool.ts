@@ -11,7 +11,7 @@ import { useWhiteboardStore } from '../state/whiteboardStore';
 import { screenToWorld } from '../utils/transform';
 import { getPointerInCanvas } from '../utils/pointer';
 import { pointerBatcher, viewportCache } from '../utils/performance';
-import type { ViewportTransform, WhiteboardPoint, WhiteboardAnnotation, ViewportState } from '../types';
+import type { ViewportTransform, WhiteboardPoint, WhiteboardAnnotation } from '../types';
 
 const __BROWSER__ = typeof window !== 'undefined' && typeof document !== 'undefined';
 

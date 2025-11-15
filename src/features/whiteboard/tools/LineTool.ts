@@ -13,7 +13,6 @@ import { getPointerInCanvas } from '../utils/pointer';
 import { pointerBatcher, viewportCache } from '../utils/performance';
 import type {
   ViewportTransform,
-  ViewportState,
   WhiteboardPoint,
   WhiteboardAnnotation,
 } from '../types';
