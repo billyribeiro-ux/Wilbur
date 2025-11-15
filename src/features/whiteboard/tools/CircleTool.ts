@@ -1,5 +1,5 @@
 // ============================================================================
-// RECTANGLE TOOL - Microsoft-Level Performance Optimized
+// CIRCLE TOOL - Microsoft-Level Performance Optimized
 // ============================================================================
 // ✅ RAF batching - 75% fewer store updates
 // ✅ Cached viewport - No getBoundingClientRect() spam
@@ -10,7 +10,7 @@
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { screenToWorld } from '../utils/transform';
 import { getPointerInCanvas } from '../utils/pointer';
-import { pointerBatcher, viewportCache } from '../utils/performance/index';
+import { pointerBatcher, viewportCache } from '../utils/performance';
 import type {
   ViewportTransform,
   WhiteboardPoint,
@@ -19,7 +19,7 @@ import type {
 
 const __BROWSER__ = typeof window !== 'undefined' && typeof document !== 'undefined';
 
-interface RectangleToolState {
+interface CircleToolState {
   isActive: boolean;
   isDrawing: boolean;
   currentShapeId: string | null;
@@ -28,7 +28,7 @@ interface RectangleToolState {
   shiftLock: boolean;
 }
 
-const toolState: RectangleToolState = {
+const toolState: CircleToolState = {
   isActive: false,
   isDrawing: false,
   currentShapeId: null,
@@ -38,7 +38,7 @@ const toolState: RectangleToolState = {
 };
 
 // Stable ID generator
-function makeId(prefix = 'rectangle'): string {
+function makeId(prefix = 'circle'): string {
   if (__BROWSER__ && 'crypto' in window && 'randomUUID' in crypto) {
     return `${prefix}-${crypto.randomUUID()}`;
   }
@@ -47,8 +47,8 @@ function makeId(prefix = 'rectangle'): string {
 
 // --- Activate / Deactivate ---------------------------------------------------
 
-/** Activate Rectangle tool */
-export function activateRectangleTool(canvasElement?: HTMLCanvasElement): void {
+/** Activate Circle tool */
+export function activateCircleTool(canvasElement?: HTMLCanvasElement): void {
   toolState.isActive = true;
   if (canvasElement) {
     toolState.canvasElement = canvasElement;
@@ -65,8 +65,8 @@ export function activateRectangleTool(canvasElement?: HTMLCanvasElement): void {
   }
 }
 
-/** Deactivate Rectangle tool */
-export function deactivateRectangleTool(): void {
+/** Deactivate Circle tool */
+export function deactivateCircleTool(): void {
   // Cancel any pending RAF updates
   pointerBatcher.cancel();
 
@@ -88,8 +88,8 @@ export function deactivateRectangleTool(): void {
 
 // --- Pointer Handlers --------------------------------------------------------
 
-/** Pointer down → start rectangle */
-export function handleRectanglePointerDown(
+/** Pointer down → start circle */
+export function handleCirclePointerDown(
   e: PointerEvent,
   canvasElement: HTMLElement,
   viewport: ViewportTransform
@@ -126,12 +126,12 @@ export function handleRectanglePointerDown(
 
   const newShape: WhiteboardAnnotation = {
     id,
-    type: 'rectangle',
+    type: 'circle',
     color,
     size, // stroke thickness in WORLD units
     opacity,
     lineStyle: 'solid',
-    points: [worldPoint, worldPoint], // [anchor, moving corner] in WORLD coords
+    points: [worldPoint, worldPoint], // [center, edge point] in WORLD coords
     timestamp: now,
     locked: false,
     createdAt: now,
@@ -144,8 +144,8 @@ export function handleRectanglePointerDown(
   return true;
 }
 
-/** Pointer move → update rectangle (OPTIMIZED with RAF batching) */
-export function handleRectanglePointerMove(
+/** Pointer move → update circle (OPTIMIZED with RAF batching) */
+export function handleCirclePointerMove(
   e: PointerEvent,
   canvasElement: HTMLElement,
   viewport: ViewportTransform
@@ -166,19 +166,10 @@ export function handleRectanglePointerMove(
   const { viewportState } = viewportCache.get(canvasElement, viewport);
 
   // CSS px → WORLD
-  let corner = screenToWorld(x, y, viewportState);
+  const edgePoint = screenToWorld(x, y, viewportState);
 
-  // If shiftLock, force square by equalizing width/height in WORLD units
-  if (toolState.shiftLock) {
-    const anchor = shape.points[0];
-    const dx = corner.x - anchor.x;
-    const dy = corner.y - anchor.y;
-    const side = Math.max(Math.abs(dx), Math.abs(dy));
-    corner = {
-      x: anchor.x + Math.sign(dx || 1) * side,
-      y: anchor.y + Math.sign(dy || 1) * side,
-    };
-  }
+  // If shiftLock, force perfect circle (not needed for circle, but kept for consistency)
+  // Circles are already perfect circles by definition
 
   // Schedule RAF update - batches moves into single store update
   pointerBatcher.scheduleUpdate(() => {
@@ -189,7 +180,7 @@ export function handleRectanglePointerMove(
     if (!currentShape || !currentShape.points) return;
 
     currentStore.updateShape(toolState.currentShapeId, {
-      points: [currentShape.points[0], corner],
+      points: [currentShape.points[0], edgePoint],
       updatedAt: Date.now(),
     });
   });
@@ -198,8 +189,8 @@ export function handleRectanglePointerMove(
   return true;
 }
 
-/** Pointer up → finish rectangle */
-export function handleRectanglePointerUp(
+/** Pointer up → finish circle */
+export function handleCirclePointerUp(
   e: PointerEvent,
   canvasElement: HTMLElement
 ): boolean {
@@ -232,10 +223,10 @@ export function handleRectanglePointerUp(
 // --- Renderer (WORLD-SPACE) --------------------------------------------------
 
 /**
- * Render rectangle (WORLD-SPACE).
+ * Render circle (WORLD-SPACE).
  * ctx already has DPR + viewport transform applied by WhiteboardCanvas.
  */
-export function renderRectangle(
+export function renderCircle(
   ctx: CanvasRenderingContext2D,
   points: WhiteboardPoint[],
   color: string,
@@ -247,13 +238,13 @@ export function renderRectangle(
 
   ctx.save();
 
-  const p1 = points[0];
-  const p2 = points[points.length - 1];
+  const center = points[0];
+  const edge = points[points.length - 1];
 
-  const x = Math.min(p1.x, p2.x);
-  const y = Math.min(p1.y, p2.y);
-  const w = Math.abs(p2.x - p1.x);
-  const h = Math.abs(p2.y - p1.y);
+  // Calculate radius from center to edge point
+  const dx = edge.x - center.x;
+  const dy = edge.y - center.y;
+  const radius = Math.sqrt(dx * dx + dy * dy);
 
   ctx.strokeStyle = color;
   ctx.globalAlpha = opacity;
@@ -262,7 +253,9 @@ export function renderRectangle(
   ctx.lineJoin = 'round';
   ctx.miterLimit = 2;
 
-  ctx.strokeRect(x, y, w, h);
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+  ctx.stroke();
 
   ctx.restore();
 }
