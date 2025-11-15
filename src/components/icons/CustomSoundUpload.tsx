@@ -129,7 +129,7 @@ export function CustomSoundUpload() {
       addToast('Sound uploaded successfully!', 'success');
     } catch (error: unknown) {
       console.error('Upload error:', error);
-      const errorMessage = error.message || 'Upload failed';
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       addToast(`Upload failed: ${errorMessage}`, 'error');
     } finally {
       setUploading(false);
@@ -163,7 +163,7 @@ export function CustomSoundUpload() {
       addToast('Sound deleted successfully', 'success');
     } catch (error: unknown) {
       console.error('Delete error:', error);
-      const errorMessage = error.message || 'Delete failed';
+      const errorMessage = error instanceof Error ? error.message : 'Delete failed';
       addToast(`Delete failed: ${errorMessage}`, 'error');
     }
   };

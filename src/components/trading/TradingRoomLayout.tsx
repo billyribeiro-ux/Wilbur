@@ -33,6 +33,7 @@ import { GeneralSettingsModal } from '../modals/GeneralSettingsModal';
 import { HorizontalResizeHandle } from './HorizontalResizeHandle';
 import { VerticalResizeHandle } from './VerticalResizeHandle';
 import { WhiteboardOverlay } from '../../features/whiteboard/WhiteboardOverlay';
+import type { WhiteboardEvent } from '../../features/whiteboard/whiteboardTypes';
 import type { TradingRoomLayoutProps } from './types';
 
 export function TradingRoomLayout({
@@ -373,7 +374,7 @@ export function TradingRoomLayout({
               userId={state.user?.id || ''}
               onClose={handlers.onWhiteboardClose}
               onEventEmit={handlers.onWhiteboardEvent}
-              incomingEvents={state.whiteboardEvents as Array<Record<string, unknown>>}
+              incomingEvents={state.whiteboardEvents as WhiteboardEvent[]}
             />
           </div>
         </div>

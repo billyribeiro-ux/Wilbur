@@ -18,14 +18,42 @@ import type { Database } from '../types/database.types';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+// Allow E2E test routes to run without real Supabase env by providing a minimal mock client
+const isE2ERoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/__test_');
+
+function createMockSupabase(): any {
+  const ok = async (data: any = {}) => ({ data, error: null });
+  const okVoid = async () => ({ error: null });
+  const tableOps = {
+    delete: () => ({ eq: () => ok() }),
+    insert: () => ok(),
+    update: () => ok(),
+    eq: () => ok(),
+  };
+  return {
+    auth: {
+      getSession: () => ok({ session: null }),
+      getUser: () => ok({ user: null }),
+      refreshSession: () => ok({ session: null }),
+      signOut: () => okVoid(),
+      signInWithPassword: () => ok({ user: null, session: null }),
+    },
+    from: () => tableOps,
+    removeChannel: () => {},
+  };
+}
+
+// If env is missing but we're on an E2E test route, use mock; otherwise enforce env
+if ((!supabaseUrl || !supabaseAnonKey) && !isE2ERoute) {
   throw new Error('[Supabase] Missing required environment variables');
 }
 
 // ============================================================================
 // SUPABASE CLIENT CONFIGURATION - Microsoft Standards
 // ============================================================================
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase: any = isE2ERoute
+  ? createMockSupabase()
+  : createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     // Session persistence - CRITICAL for preventing logout on refresh
     autoRefreshToken: true,

@@ -11,7 +11,7 @@
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { screenToWorld } from '../utils/transform';
 import { hitTestText } from '../utils/hitTest';
-import { pointerBatcher, viewportCache } from '../utils/performance/index';
+import { pointerBatcher, viewportCache } from '../utils/performance;
 import type {
   TextAnnotation,
   WhiteboardPoint,

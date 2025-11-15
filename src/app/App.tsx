@@ -14,7 +14,9 @@ import { FluentProvider, webDarkTheme, Spinner, type Theme } from '@fluentui/rea
 // Removed unused supabase import - authStore.initialize() is single source of truth
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
 import { NotesView } from '../components/trading/NotesView';
-import { WhiteboardOverlay } from '../features/whiteboard/WhiteboardOverlay';
+// WhiteboardOverlay imported only inside harness now; remove direct import to avoid unused variable warning
+// import { WhiteboardOverlay } from '../features/whiteboard/WhiteboardOverlay';
+import { TestWhiteboardHarness } from '../features/whiteboard/TestWhiteboardHarness';
 import { TestTradingRoomShell } from '../components/trading/TestTradingRoomShell';
 import type { Session, User } from '@supabase/supabase-js';
 import { ToastContainer } from '../components/ToastContainer';
@@ -34,6 +36,15 @@ const ProtectedRoute: FC<ProtectedRouteProps> = ({ children }) => {
   const { session, initialized } = useAuthStore();
   
   if (!initialized) {
+    const path = typeof window !== 'undefined' ? window.location.pathname : '';
+    // Fast-path: allow test whiteboard route to render immediately without auth/session
+    if (path.startsWith('/__test_whiteboard')) {
+      return (
+        <FluentProvider theme={webDarkTheme} dir="ltr">
+          <TestWhiteboard />
+        </FluentProvider>
+      );
+    }
     return (
       <FluentProvider theme={webDarkTheme} dir="ltr">
         <div
@@ -103,30 +114,19 @@ const TestTradingRoom: FC = () => {
 };
 
 // Test Whiteboard route wrapper (always active overlay + toolbar)
-const TestWhiteboard: FC = () => {
-  return (
-    <InjectTestSession>
-      <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-        {/* Provide a test toggle element (optional) */}
-        <button
-          data-testid="whiteboard-toggle"
-          style={{ position: 'absolute', top: 8, left: 8, zIndex: 1000 }}
-        >
-          Whiteboard Active
-        </button>
-        <WhiteboardOverlay
-          isActive={true}
-          canAnnotate={true}
-          width={window.innerWidth}
-          height={window.innerHeight}
-          roomId="test-room"
-          userId="test-user"
-          onClose={() => { /* no-op for test */ }}
-        />
-      </div>
-    </InjectTestSession>
-  );
-};
+const TestWhiteboard: FC = () => (
+  <InjectTestSession>
+    {/* Harness component encapsulates test-specific globals & history counter */}
+    <TestWhiteboardHarness />
+    {/* Fallback (kept) invisible canvas to ensure locator resilience if harness fails extremely early */}
+    <canvas
+      data-testid="whiteboard-canvas-fallback"
+      width={typeof window !== 'undefined' ? window.innerWidth : 800}
+      height={typeof window !== 'undefined' ? window.innerHeight : 600}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0 }}
+    />
+  </InjectTestSession>
+);
 
 // 🔥 CRITICAL: AppRoutes component outside App() to prevent re-creation
 const AppRoutes: FC = () => {

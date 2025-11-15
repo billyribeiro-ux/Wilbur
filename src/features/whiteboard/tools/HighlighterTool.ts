@@ -17,23 +17,25 @@ import {
   viewportCache,
   simplifyPoints,
   simplifyPointsByDistance,
-} from '../utils/performance';
+} from '../utils/performance/index';
 import type { WhiteboardShape, WhiteboardPoint } from '../types';
 import type { HighlighterAnnotation, ViewportState } from '../types';
 
 interface HighlighterToolState {
   isActive: boolean;
   currentStroke: HighlighterAnnotation | null;
-  isDrawing: boolean;
-
-  // Performance optimizations
-  accumulatedPoints: WhiteboardPoint[]; // Local buffer - no store spam
+  drawing: boolean;
+  batcher: ReturnType<typeof pointerBatcher> | null;
+  viewportCache: ReturnType<typeof viewportCache> | null;
+  accumulatedPoints: WhiteboardPoint[];
 }
 
 const toolState: HighlighterToolState = {
   isActive: false,
   currentStroke: null,
-  isDrawing: false,
+  drawing: false,
+  batcher: null,
+  viewportCache: null,
   accumulatedPoints: [],
 };
 
@@ -43,21 +45,23 @@ export function activateHighlighterTool(canvasElement?: HTMLElement): void {
   // Pre-cache viewport if canvas element provided
   if (canvasElement) {
     const store = useWhiteboardStore.getState();
-    viewportCache.get(canvasElement, store.viewport);
+      toolState.viewportCache!.get(canvasElement, store.viewport);
   }
+    toolState.batcher = pointerBatcher(() => {}, 8);
+    toolState.viewportCache = viewportCache();
 }
 
 export function deactivateHighlighterTool(): void {
   // Cancel any pending RAF updates
-  pointerBatcher.cancel();
+    if (toolState.batcher) toolState.batcher.cancel();
 
-  if (toolState.isDrawing && toolState.currentStroke) {
+  if (toolState.drawing && toolState.currentStroke) {
     commitStroke();
   }
 
   toolState.isActive = false;
   toolState.currentStroke = null;
-  toolState.isDrawing = false;
+  toolState.drawing = false;
   toolState.accumulatedPoints = [];
 }
 
@@ -70,7 +74,7 @@ export function handleHighlighterPointerDown(
   if (e.button !== 0) return false; // primary (left) button only
 
   // Use cached viewport - no getBoundingClientRect() spam!
-  const { rect, viewportState } = viewportCache.get(canvasElement, viewport);
+    const { rect, viewportState } = toolState.viewportCache!.get(canvasElement, viewport);
 
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;
@@ -100,7 +104,7 @@ export function handleHighlighterPointerDown(
   };
 
   toolState.currentStroke = stroke;
-  toolState.isDrawing = true;
+  toolState.drawing = true;
 
   // Initialize local accumulation buffer
   toolState.accumulatedPoints = [worldPos];
@@ -126,12 +130,12 @@ export function handleHighlighterPointerMove(
   canvasElement: HTMLElement,
   viewport: ViewportState
 ): boolean {
-  if (!toolState.isActive || !toolState.isDrawing || !toolState.currentStroke) {
+  if (!toolState.isActive || !toolState.drawing || !toolState.currentStroke) {
     return false;
   }
 
   // Use cached viewport - MASSIVE performance win!
-  const { rect, viewportState } = viewportCache.get(canvasElement, viewport);
+    const { rect, viewportState } = toolState.viewportCache!.get(canvasElement, viewport);
 
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;
@@ -142,8 +146,8 @@ export function handleHighlighterPointerMove(
   toolState.accumulatedPoints.push(worldPos);
 
   // Schedule RAF update - batches multiple moves into single store update
-  pointerBatcher.scheduleUpdate(() => {
-    if (!toolState.currentStroke || !toolState.isDrawing) return;
+    toolState.batcher!.scheduleUpdate(() => {
+  if (!toolState.currentStroke || !toolState.drawing) return;
 
     const store = useWhiteboardStore.getState();
 
@@ -175,10 +179,10 @@ export function handleHighlighterPointerUp(
   e: PointerEvent,
   canvasElement: HTMLElement
 ): boolean {
-  if (!toolState.isActive || !toolState.isDrawing) return false;
+  if (!toolState.isActive || !toolState.drawing) return false;
 
   // Cancel any pending RAF update
-  pointerBatcher.cancel();
+    if (toolState.batcher) toolState.batcher.cancel();
 
   try {
     canvasElement.releasePointerCapture(e.pointerId);
@@ -188,7 +192,7 @@ export function handleHighlighterPointerUp(
 
   commitStroke();
 
-  toolState.isDrawing = false;
+  toolState.drawing = false;
   toolState.currentStroke = null;
   toolState.accumulatedPoints = [];
 

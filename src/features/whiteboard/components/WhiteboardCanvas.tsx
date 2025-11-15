@@ -4,7 +4,7 @@
 // Canvas2D rendering with pointer interaction
 // ============================================================================
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { usePointerDrawing } from '../hooks/usePointerDrawing';
 import { drawShape, clearCanvas } from '../utils/drawPrimitives';
@@ -49,13 +49,6 @@ import {
   deactivateLineTool,
 } from '../tools/LineTool';
 import {
-  handleCirclePointerDown,
-  handleCirclePointerMove,
-  handleCirclePointerUp,
-  activateCircleTool,
-  deactivateCircleTool,
-} from '../tools/CircleTool';
-import {
   handleArrowPointerDown,
   handleArrowPointerMove,
   handleArrowPointerUp,
@@ -78,12 +71,12 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
   const [emojiPickerPosition, setEmojiPickerPosition] = useState<{ x: number; y: number } | null>(null);
   const [pendingEmojiPosition, setPendingEmojiPosition] = useState<WhiteboardPoint | null>(null);
   
-  const shapes = useWhiteboardStore((s) => s.shapes);
-  const viewport = useWhiteboardStore((s) => s.viewport);
-  const tool = useWhiteboardStore((s) => s.tool);
-  const addShape = useWhiteboardStore((s) => s.addShape);
-  const setPan = useWhiteboardStore((s) => s.setPan);
-  const setZoom = useWhiteboardStore((s) => s.setZoom);
+  const shapes = useWhiteboardStore((s: any) => s.shapes);
+  const viewport = useWhiteboardStore((s: any) => s.viewport);
+  const tool = useWhiteboardStore((s: any) => s.tool);
+  const addShape = useWhiteboardStore((s: any) => s.addShape);
+  const setPan = useWhiteboardStore((s: any) => s.setPan);
+  const setZoom = useWhiteboardStore((s: any) => s.setZoom);
   
   const pointerHandlers = usePointerDrawing(canvasRef, canAnnotate);
   const { handlePointerDown, handlePointerMove, handlePointerUp } = pointerHandlers;
@@ -113,7 +106,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     ctx.fillRect(0, 0, 1, 1);
 
     // Draw all shapes in world space
-    shapes.forEach((shape) => {
+    shapes.forEach((shape: import('../types').WhiteboardShape) => {
       drawShape(ctx, shape, viewportState);
     });
 
@@ -138,7 +131,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
   }, [render]);
   
   // Handle pan with hand tool
-  const handlePanStart = useCallback((e: React.PointerEvent) => {
+  const handlePanStart = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     if (tool !== 'hand') return;
     
     isPanning.current = true;
@@ -146,7 +139,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     e.currentTarget.setPointerCapture(e.pointerId);
   }, [tool]);
   
-  const handlePanMove = useCallback((e: React.PointerEvent) => {
+  const handlePanMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isPanning.current) return;
     
     const dx = e.clientX - lastPanPoint.current.x;
@@ -164,7 +157,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     lastPanPoint.current = { x: e.clientX, y: e.clientY };
   }, [viewport, setPan, width, height]);
   
-  const handlePanEnd = useCallback((e: React.PointerEvent) => {
+  const handlePanEnd = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isPanning.current) return;
     
     isPanning.current = false;
@@ -172,7 +165,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
   }, []);
   
   // Handle zoom with wheel
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     
     const delta = -e.deltaY * 0.001;
@@ -182,7 +175,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
   }, [viewport.zoom, setZoom]);
   
   // Handle text tool click
-  const handleTextClick = useCallback((e: React.PointerEvent | React.MouseEvent<HTMLCanvasElement>) => {
+  const handleTextClick = useCallback((e: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -235,7 +228,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
   }, [textEditorPosition, addShape, editingTextId]);
   
   // Emoji handlers
-  const handleEmojiClick = useCallback((e: React.PointerEvent) => {
+  const handleEmojiClick = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -284,6 +277,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
   
   // Tool activation/deactivation
   useEffect(() => {
+    const canvas = canvasRef.current;
     if (tool === 'text') {
       activateTextTool();
       return () => {
@@ -301,9 +295,6 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     } else if (tool === 'line') {
       activateLineTool(canvas || undefined);
       return () => deactivateLineTool();
-    } else if (tool === 'circle') {
-      activateCircleTool(canvas || undefined);
-      return () => deactivateCircleTool();
     } else if (tool === 'arrow') {
       activateArrowTool(canvas || undefined);
       return () => deactivateArrowTool();
@@ -312,8 +303,8 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
   }, [tool]);
   
   // Keyboard shortcuts
-  const undo = useWhiteboardStore((s) => s.undo);
-  const redo = useWhiteboardStore((s) => s.redo);
+  const undo = useWhiteboardStore((s: any) => s.undo);
+  const redo = useWhiteboardStore((s: any) => s.redo);
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -343,7 +334,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
   }, [undo, redo]);
   
   // Combined pointer handlers
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -378,9 +369,6 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     } else if (tool === 'line') {
       try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'line'; } } catch {}
       handleLinePointerDown(e.nativeEvent, canvas, viewportState);
-    } else if (tool === 'circle') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'circle'; } } catch {}
-      handleCirclePointerDown(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'arrow') {
       try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'arrow'; } } catch {}
       handleArrowPointerDown(e.nativeEvent, canvas, viewportState);
@@ -396,7 +384,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     }
   }, [tool, viewport, width, height, handleTextClick, handleEmojiClick, handlePanStart, handlePointerDown]);
   
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -423,9 +411,6 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     } else if (tool === 'line') {
       try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'line-move'; } } catch {}
       handleLinePointerMove(e.nativeEvent, canvas, viewportState);
-    } else if (tool === 'circle') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'circle-move'; } } catch {}
-      handleCirclePointerMove(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'arrow') {
       try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'arrow-move'; } } catch {}
       handleArrowPointerMove(e.nativeEvent, canvas, viewportState);
@@ -438,7 +423,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     }
   }, [tool, viewport, width, height, handlePanMove, handlePointerMove]);
   
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
+  const onPointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -459,9 +444,6 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     } else if (tool === 'line') {
       try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'line-up'; } } catch {}
       handleLinePointerUp(e.nativeEvent, canvas);
-    } else if (tool === 'circle') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'circle-up'; } } catch {}
-      handleCirclePointerUp(e.nativeEvent, canvas);
     } else if (tool === 'arrow') {
       try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'arrow-up'; } } catch {}
       handleArrowPointerUp(e.nativeEvent, canvas);
@@ -509,12 +491,12 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onClick={(e) => {
+        onClick={(e: React.MouseEvent<HTMLCanvasElement>) => {
           if (tool === 'text') {
             handleTextClick(e);
           }
         }}
-        onDoubleClick={(e) => {
+        onDoubleClick={(e: React.MouseEvent<HTMLCanvasElement>) => {
           if (tool !== 'text') return;
           const canvas = canvasRef.current;
           if (!canvas) return;
@@ -533,7 +515,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
 
           const shapesArr = Array.from(useWhiteboardStore.getState().shapes.values());
           for (let i = shapesArr.length - 1; i >= 0; i--) {
-            const s = shapesArr[i];
+            const s = shapesArr[i] as import('../types').WhiteboardShape;
             if (s.type !== 'text' || !s.text || !s.points || s.points.length === 0) continue;
             const origin = s.points[0];
             const sp = worldToScreen(origin, viewportState);

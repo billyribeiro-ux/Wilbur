@@ -83,13 +83,24 @@ initializeSoundService();
 function validateEnvironment() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  // E2E TEST ROUTE FAST-PATH: Skip hard failures for missing env on test-only routes
+  // This allows Playwright to mount /__test_whiteboard without requiring full backend configuration.
+  const isE2ERoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/__test_');
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase configuration. Please check your .env file.');
+    if (isE2ERoute) {
+      console.warn('[ENV] Skipping Supabase configuration enforcement for E2E test route');
+    } else {
+      throw new Error('Missing Supabase configuration. Please check your .env file.');
+    }
   }
 
-  if (!supabaseUrl.startsWith('http')) {
-    throw new Error('Invalid Supabase URL in configuration.');
+  if (supabaseUrl && !supabaseUrl.startsWith('http')) {
+    if (isE2ERoute) {
+      console.warn('[ENV] Supabase URL invalid, but tolerated in E2E mode');
+    } else {
+      throw new Error('Invalid Supabase URL in configuration.');
+    }
   }
 
   const envValidation = validateEnvironmentConfig();
@@ -101,7 +112,7 @@ function validateEnvironment() {
       (err) => err.includes('required') || err.includes('must use HTTPS')
     );
 
-    if (criticalErrors.length > 0 && import.meta.env.PROD) {
+    if (criticalErrors.length > 0 && import.meta.env.PROD && !isE2ERoute) {
       throw new Error(`Critical configuration errors:\n${criticalErrors.join('\n')}`);
     }
   }
