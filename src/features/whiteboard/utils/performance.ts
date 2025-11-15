@@ -4,7 +4,7 @@
 // Eliminates getBoundingClientRect() spam and batches pointer updates
 // ============================================================================
 
-import type { ViewportTransform, WhiteboardPoint } from '../types';
+import type { ViewportTransform, ViewportState, WhiteboardPoint } from '../types';
 
 // =============================================================================
 // VIEWPORT CACHE - Eliminates getBoundingClientRect() spam
@@ -12,7 +12,7 @@ import type { ViewportTransform, WhiteboardPoint } from '../types';
 
 interface CachedViewport {
   rect: DOMRect;
-  viewportState: ViewportTransform;
+  viewportState: ViewportState;
   timestamp: number;
 }
 
@@ -27,7 +27,7 @@ class ViewportCache {
   get(
     element: HTMLElement,
     viewport: ViewportTransform
-  ): { rect: DOMRect; viewportState: ViewportTransform } {
+  ): { rect: DOMRect; viewportState: ViewportState } {
     const cached = this.cache.get(element);
     const now = performance.now();
 
@@ -41,7 +41,7 @@ class ViewportCache {
 
     // Compute fresh
     const rect = element.getBoundingClientRect();
-    const viewportState: ViewportTransform = {
+    const viewportState: ViewportState = {
       zoom: viewport.zoom,
       panX: viewport.panX,
       panY: viewport.panY,

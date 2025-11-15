@@ -12,33 +12,34 @@ import { useWhiteboardStore } from './whiteboardStore';
  */
 export function processIncomingEvent(event: WhiteboardEvent): void {
   const store = useWhiteboardStore.getState();
-  
+  const payload = event.payload as any; // Runtime type checking done below
+
   switch (event.type) {
     case 'shape:add':
-      if ('shape' in event.payload) {
-        store.addShape(event.payload.shape);
+      if (payload && 'shape' in payload && payload.shape) {
+        store.addShape(payload.shape as WhiteboardShape);
       }
       break;
-      
+
     case 'shape:update':
-      if ('shape' in event.payload) {
-        const shape = event.payload.shape;
+      if (payload && 'shape' in payload && payload.shape) {
+        const shape = payload.shape as WhiteboardShape;
         store.updateShape(shape.id, shape);
       }
       break;
-      
+
     case 'shape:delete':
-      if ('shapeId' in event.payload) {
-        store.deleteShape(event.payload.shapeId);
+      if (payload && 'shapeId' in payload && typeof payload.shapeId === 'string') {
+        store.deleteShape(payload.shapeId);
       }
       break;
-      
+
     case 'cursor:move':
-      if ('cursor' in event.payload) {
-        store.updateRemoteCursor(event.userId, event.payload.cursor);
+      if (payload && 'cursor' in payload && payload.cursor) {
+        store.updateRemoteCursor(event.userId, payload.cursor as RemoteCursor);
       }
       break;
-      
+
     case 'stroke:clear':
       store.clearShapes();
       break;

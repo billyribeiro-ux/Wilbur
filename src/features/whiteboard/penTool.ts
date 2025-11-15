@@ -8,7 +8,7 @@
 import { useWhiteboardStore } from './state/whiteboardStore';
 import { screenToWorld } from './utils/transform';
 import { getPointerInCanvas } from './utils/pointer';
-import type { ViewportTransform, WhiteboardPoint, WhiteboardAnnotation } from './types';
+import type { ViewportState, WhiteboardPoint, WhiteboardAnnotation } from './types';
 
 const __BROWSER__ = typeof window !== 'undefined' && typeof document !== 'undefined';
 
@@ -67,7 +67,7 @@ export function deactivatePenTool(): void {
 export function handlePenPointerDown(
   e: PointerEvent,
   canvasElement: HTMLElement,
-  viewport: ViewportTransform
+  viewport: ViewportState
 ): boolean {
   if (!toolState.isActive) return false;
   if (e.button !== 0) return false; // left button only
@@ -117,7 +117,7 @@ export function handlePenPointerDown(
 export function handlePenPointerMove(
   e: PointerEvent,
   canvasElement: HTMLElement,
-  viewport: ViewportTransform
+  viewport: ViewportState
 ): boolean {
   if (!toolState.isActive || !toolState.isDrawing || !toolState.currentShapeId) return false;
 
@@ -175,7 +175,7 @@ export function renderPenStroke(
   color: string,
   size: number,
   opacity: number,
-  _viewport: ViewportTransform // unused in world-space render
+  _viewport: ViewportState // unused in world-space render
 ): void {
   if (!points || points.length < 2) return;
 

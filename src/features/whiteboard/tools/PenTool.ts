@@ -289,7 +289,7 @@ export function renderPenStroke(
  */
 export function updatePenToolViewport(
   canvasElement: HTMLElement,
-  viewport: ViewportTransform
+  _viewport: ViewportTransform
 ): void {
-  viewportCache.updateViewport(canvasElement, viewport);
+  viewportCache.invalidate(canvasElement);
 }

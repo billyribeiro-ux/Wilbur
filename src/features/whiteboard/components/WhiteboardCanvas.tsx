@@ -13,7 +13,7 @@ import { EmojiPicker } from './EmojiPicker';
 import { screenToWorld, worldToScreen, applyTransform, resetTransform } from '../utils/transform';
 import { debug } from '../utils/debug';
 import { measureText } from '../utils/textLayout';
-import type { WhiteboardPoint } from '../types';
+import type { WhiteboardPoint, ViewportState } from '../types';
 import { 
   handleTextPointerMove,
   handleTextPointerUp,
@@ -103,7 +103,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     clearCanvas(ctx, canvas.width, canvas.height);
 
     // Viewport width/height must be CSS pixels; DPR is handled inside applyTransform
-    const viewportState = { ...viewport, width, height };
+    const viewportState: ViewportState = { ...viewport, width, height };
 
     // Set DPR + viewport transform
     applyTransform(ctx, viewportState);
@@ -296,16 +296,16 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
       activateEraserTool();
       return () => deactivateEraserTool();
     } else if (tool === 'rectangle') {
-      activateRectangleTool(canvas || undefined);
+      activateRectangleTool(canvasRef.current || undefined);
       return () => deactivateRectangleTool();
     } else if (tool === 'line') {
-      activateLineTool(canvas || undefined);
+      activateLineTool(canvasRef.current || undefined);
       return () => deactivateLineTool();
     } else if (tool === 'circle') {
-      activateCircleTool(canvas || undefined);
+      activateCircleTool(canvasRef.current || undefined);
       return () => deactivateCircleTool();
     } else if (tool === 'arrow') {
-      activateArrowTool(canvas || undefined);
+      activateArrowTool(canvasRef.current || undefined);
       return () => deactivateArrowTool();
     }
     return undefined;
@@ -348,7 +348,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     if (!canvas) return;
     
     // Viewport width/height must be CSS pixels
-    const viewportState = {
+    const viewportState: ViewportState = {
       ...viewport,
       width,
       height,
@@ -399,8 +399,8 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
-    const viewportState = {
+
+    const viewportState: ViewportState = {
       ...viewport,
       width,
       height,
@@ -525,7 +525,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
           if (!ctx) return;
 
           // Viewport uses CSS width/height
-          const viewportState = { ...viewport, width, height };
+          const viewportState: ViewportState = { ...viewport, width, height };
 
           const worldPos = screenToWorld(sx, sy, viewportState);
           setTextEditorPosition(worldPos);
