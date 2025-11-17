@@ -78,3 +78,19 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
     }
   )
 );
+
+// ═══════════════════════════════════════════════════════════════
+// CRITICAL FIX: Automatic cleanup on page unload to prevent memory leaks
+// ═══════════════════════════════════════════════════════════════
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    useSpotifyPlayerStore.getState().stopPolling();
+  });
+
+  // Also cleanup on visibility change (tab switch, minimize)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      useSpotifyPlayerStore.getState().stopPolling();
+    }
+  });
+}

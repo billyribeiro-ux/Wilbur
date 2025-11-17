@@ -291,13 +291,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     console.log('[AuthStore] Session monitoring initialized (passive mode)');
     
     // Only update last activity periodically, don't force logout
+    // CRITICAL FIX: Read sessionToken from current state, not stale closure
     sessionMonitorInterval = setInterval(async () => {
       try {
-        if (sessionToken) {
+        const { sessionToken: currentToken } = get(); // Read current state
+        if (currentToken) {
           await supabase
             .from('sessions')
             .update({ last_activity: new Date().toISOString() })
-            .eq('session_token', sessionToken);
+            .eq('session_token', currentToken);
         }
       } catch (error) {
         console.debug('[AuthStore] Session update error:', error);
