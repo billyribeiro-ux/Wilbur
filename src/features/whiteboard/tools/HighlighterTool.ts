@@ -7,7 +7,7 @@
 // - Point simplification: 80-95% memory reduction
 // - DPR-aware rendering: Crisp output on all displays
 // ============================================================================
-// Version: 2.0.0
+// Version: 2.0.1 - Fixed type compatibility
 // Last Updated: 2025-01-18
 // ============================================================================
 
@@ -23,9 +23,32 @@ import {
 import type { 
   WhiteboardShape, 
   WhiteboardPoint,
-  HighlighterAnnotation, 
-  ViewportState 
+  ViewportState,
+  StrokeMetadata
 } from '../types';
+
+// Import the extended type if your types file doesn't have metadata
+// Otherwise, extend the existing HighlighterAnnotation type locally
+interface HighlighterAnnotationWithMetadata {
+  id: string;
+  type: 'highlighter';
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  opacity: number;
+  locked: boolean;
+  points: WhiteboardPoint[];
+  colorGradient: any; // Use proper gradient type from your types
+  thickness: number;
+  composite: 'multiply' | 'normal' | 'overlay';
+  createdAt: number;
+  updatedAt: number;
+  metadata?: StrokeMetadata; // Optional metadata field
+  smoothing?: number;
+  capStyle?: 'round' | 'square' | 'butt';
+  joinStyle?: 'round' | 'miter' | 'bevel';
+}
 
 // ============================================================================
 // Constants & Configuration
@@ -54,7 +77,7 @@ const HIGHLIGHTER_CONFIG = {
 
 interface HighlighterToolState {
   isActive: boolean;
-  currentStroke: HighlighterAnnotation | null;
+  currentStroke: HighlighterAnnotationWithMetadata | null;
   drawing: boolean;
   batcher: ReturnType<typeof pointerBatcher> | null;
   viewportCache: ReturnType<typeof viewportCache> | null;
@@ -154,7 +177,9 @@ export function activateHighlighterTool(canvasElement?: HTMLElement): void {
 
   // Listen for DPR changes
   const mediaQuery = window.matchMedia(`(resolution: ${toolState.dpr}dppx)`);
-  mediaQuery.addEventListener('change', handleDPRChange);
+  if (mediaQuery.addEventListener) {
+    mediaQuery.addEventListener('change', handleDPRChange);
+  }
 
   console.log('[HighlighterTool] Activated with DPR:', toolState.dpr);
 }
@@ -226,7 +251,7 @@ export function handleHighlighterPointerDown(
     const now = Date.now();
     const id = generateStrokeId(now);
 
-    const stroke: HighlighterAnnotation = {
+    const stroke: HighlighterAnnotationWithMetadata = {
       id,
       type: 'highlighter',
       x: worldPos.x,
@@ -430,6 +455,13 @@ function commitStroke(): void {
   // Calculate simplification ratio for metrics
   const simplificationRatio = 1 - (simplified.length / originalPointCount);
 
+  // Update metadata with final stats
+  if (toolState.currentStroke.metadata) {
+    toolState.currentStroke.metadata.originalPointCount = originalPointCount;
+    toolState.currentStroke.metadata.finalPointCount = simplified.length;
+    toolState.currentStroke.metadata.simplificationRatio = simplificationRatio;
+  }
+
   // Final update with optimized points
   toolState.currentStroke.points = simplified;
   toolState.currentStroke.updatedAt = Date.now();
@@ -511,7 +543,7 @@ function handleDPRChange(): void {
 /**
  * Detects device type for metrics
  */
-function getDeviceType(): string {
+function getDeviceType(): 'touch' | 'coarse' | 'fine' {
   if ('ontouchstart' in window) {
     return 'touch';
   } else if (window.matchMedia('(pointer: coarse)').matches) {

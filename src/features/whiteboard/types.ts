@@ -1,69 +1,53 @@
 // ============================================================================
-// WHITEBOARD TYPES - Complete Type Definitions (SSOT-aligned)
+// TYPE DEFINITIONS - Microsoft L67+ Enterprise Grade
+// ============================================================================
+// Version: 2.0.0
+// Last Updated: 2025-01-18
+// ============================================================================
+
+// ============================================================================
+// Core Types
 // ============================================================================
 
 export interface WhiteboardPoint {
   x: number;
   y: number;
-  p?: number; // pressure
+  pressure?: number; // Optional pressure for stylus input
+  timestamp?: number; // Optional timestamp for velocity calculations
 }
 
-// Viewport WITH CSS dimensions – used at the "edges" for screen/world math
 export interface ViewportState {
-  zoom: number;
-  panX: number;
-  panY: number;
-  width: number;
-  height: number;
-}
-
-// Transform-only viewport – used by tools/renderers that don't care about size
-export interface ViewportTransform {
-  panX: number;
-  panY: number;
-  zoom: number;
-}
-
-export type WhiteboardTool =
-  | 'select'
-  | 'hand'
-  | 'pen'
-  | 'highlighter'
-  | 'eraser'
-  | 'line'
-  | 'rectangle'
-  | 'circle'
-  | 'arrow'
-  | 'text'
-  | 'stamp';
-
-export type LineStyle = 'solid' | 'dashed' | 'dotted';
-
-export type CompositeMode =
-  | 'source-over'
-  | 'multiply'
-  | 'screen'
-  | 'overlay'
-  | 'darken'
-  | 'lighten';
-
-export interface LinearGradient {
-  type: 'linear';
-  angleDeg: number;
-  stops: Array<{
-    offset: number;
-    color: string;
-    alpha: number;
-  }>;
+  x: number;
+  y: number;
+  scale: number;
+  rotation?: number;
+  dpr?: number; // Device pixel ratio at time of viewport capture
 }
 
 // ============================================================================
-// Base Annotation Types
+// Metadata Types
 // ============================================================================
 
-export interface BaseAnnotation {
+export interface StrokeMetadata {
+  dpr: number;                    // Device pixel ratio when stroke was created
+  deviceType: 'touch' | 'coarse' | 'fine';  // Input device classification
+  pointerType: string;             // 'mouse' | 'pen' | 'touch' | etc.
+  renderTime?: number;             // Average frame time during drawing
+  simplificationRatio?: number;    // Point reduction percentage
+  originalPointCount?: number;     // Points before simplification
+  finalPointCount?: number;        // Points after simplification
+  drawDuration?: number;           // Total time from start to end
+  platform?: string;               // OS/Browser info
+  inputLatency?: number;           // Average input latency
+}
+
+// ============================================================================
+// Shape Base Types
+// ============================================================================
+
+export interface WhiteboardShapeBase {
   id: string;
-  type: WhiteboardTool;
+  type: string;
   x: number;
   y: number;
   scale: number;
@@ -72,258 +56,280 @@ export interface BaseAnnotation {
   locked: boolean;
   createdAt: number;
   updatedAt: number;
-  zIndex?: number;
+  metadata?: StrokeMetadata;  // Optional metadata for all shapes
 }
 
-// Emoji annotation
-export interface EmojiAnnotation extends BaseAnnotation {
-  type: 'stamp';
-  glyph: string;
-}
+// ============================================================================
+// Gradient Types
+// ============================================================================
 
-// Simplified alias for compatibility
-export type EmojiObject = EmojiAnnotation;
-
-// Text annotation (Zoom-like rich text)
-export interface TextAnnotation extends BaseAnnotation {
-  type: 'text';
-  content: string;
-  fontFamily: string;
-  fontSize: number;
-  fontWeight: number;
-  fontStyle: 'normal' | 'italic';
-  textDecoration: 'none' | 'underline' | 'line-through';
-  lineHeight: number;
-  textAlign: 'left' | 'center' | 'right';
+export interface GradientStop {
+  offset: number;
   color: string;
-  width: number;
-  height: number;
+  opacity?: number;
 }
 
-// Highlighter annotation (world-space stroke)
-export interface HighlighterAnnotation extends BaseAnnotation {
+export interface WhiteboardGradient {
+  type: 'linear' | 'radial';
+  stops: GradientStop[];
+  angle?: number;           // For linear gradients
+  centerX?: number;          // For radial gradients
+  centerY?: number;          // For radial gradients
+  radius?: number;           // For radial gradients
+}
+
+// ============================================================================
+// Annotation Types with Metadata Support
+// ============================================================================
+
+export interface HighlighterAnnotation extends WhiteboardShapeBase {
   type: 'highlighter';
   points: WhiteboardPoint[];
-  colorGradient: LinearGradient;
+  colorGradient: WhiteboardGradient;
   thickness: number;
-  composite: CompositeMode;
+  composite: 'multiply' | 'normal' | 'overlay';
+  smoothing?: number;        // Optional smoothing factor
+  capStyle?: 'round' | 'square' | 'butt';
+  joinStyle?: 'round' | 'miter' | 'bevel';
 }
 
-// Pen / generic shape annotations
-export interface WhiteboardShape {
-  id: string;
-  type: WhiteboardTool;
-  color: string;
-  fillColor?: string;
-  size: number;
-  lineStyle: LineStyle;
-  opacity: number;
+export interface PenAnnotation extends WhiteboardShapeBase {
+  type: 'pen';
   points: WhiteboardPoint[];
-  text?: string;
-  fontSize?: number;
-  fontFamily?: string;
-  fontWeight?: number;
-  fontStyle?: 'normal' | 'italic';
-  textDecoration?: 'none' | 'underline';
-  stampEmoji?: string;
+  color: string;
+  thickness: number;
+  smoothing?: number;
+  capStyle?: 'round' | 'square' | 'butt';
+  joinStyle?: 'round' | 'miter' | 'bevel';
+}
+
+export interface EraserAnnotation extends WhiteboardShapeBase {
+  type: 'eraser';
+  points: WhiteboardPoint[];
+  thickness: number;
+}
+
+// ============================================================================
+// Shape Types Union
+// ============================================================================
+
+export type WhiteboardAnnotation = 
+  | HighlighterAnnotation 
+  | PenAnnotation 
+  | EraserAnnotation;
+
+export type WhiteboardShape = 
+  | WhiteboardAnnotation
+  | TextShape
+  | ImageShape
+  | ShapeObject;
+
+// ============================================================================
+// Other Shape Types
+// ============================================================================
+
+export interface TextShape extends WhiteboardShapeBase {
+  type: 'text';
+  content: string;
+  fontSize: number;
+  fontFamily: string;
+  color: string;
   width?: number;
   height?: number;
-  rotation?: number;
-  selected?: boolean;
-  locked?: boolean;
-  userId?: string;
-  timestamp?: number;
-  createdAt?: number;
-  updatedAt?: number;
-  zIndex?: number;
-  gradient?: LinearGradient;
-  composite?: CompositeMode;
+  textAlign?: 'left' | 'center' | 'right';
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+  lineHeight?: number;
+  letterSpacing?: number;
+  fontWeight?: 'normal' | 'bold' | number;
+  fontStyle?: 'normal' | 'italic';
+  textDecoration?: 'none' | 'underline' | 'line-through';
 }
 
-export type WhiteboardAnnotation =
-  | EmojiAnnotation
-  | TextAnnotation
-  | HighlighterAnnotation
-  | WhiteboardShape;
+export interface ImageShape extends WhiteboardShapeBase {
+  type: 'image';
+  url: string;
+  width: number;
+  height: number;
+  naturalWidth?: number;
+  naturalHeight?: number;
+  fit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+  clipPath?: string;
+}
+
+export interface ShapeObject extends WhiteboardShapeBase {
+  type: 'rectangle' | 'circle' | 'triangle' | 'arrow' | 'line';
+  width?: number;
+  height?: number;
+  radius?: number;
+  points?: WhiteboardPoint[];
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  strokeDasharray?: string;
+}
 
 // ============================================================================
-// Remote Cursor Types (Collaboration)
+// Store Types
 // ============================================================================
 
-export interface RemoteCursor {
-  userId: string;
-  userName: string;
+export interface WhiteboardStore {
+  // Canvas state
+  shapes: Map<string, WhiteboardShape>;
+  viewport: ViewportState;
+  
+  // Tool state
+  activeTool: ToolType;
   color: string;
-  position: WhiteboardPoint;
-  timestamp: number;
+  size: number;
+  opacity: number;
+  
+  // History
+  history: HistoryEntry[];
+  historyIndex: number;
+  
+  // Methods
+  saveHistory: (action: string) => void;
+  undo: () => void;
+  redo: () => void;
+  
+  // Selection
+  selectedShapeIds: Set<string>;
+  
+  // Performance
+  renderQuality: 'low' | 'medium' | 'high' | 'auto';
+  enableGPU: boolean;
+  
+  // Collaboration (optional)
+  collaborators?: Map<string, Collaborator>;
+  cursorPositions?: Map<string, CursorPosition>;
 }
 
 // ============================================================================
-// History / Event Types
+// Tool Types
+// ============================================================================
+
+export type ToolType = 
+  | 'select'
+  | 'pen'
+  | 'highlighter'
+  | 'eraser'
+  | 'text'
+  | 'shape'
+  | 'image'
+  | 'pan'
+  | 'zoom';
+
+export interface ToolState {
+  type: ToolType;
+  isActive: boolean;
+  options: Record<string, any>;
+}
+
+// ============================================================================
+// History Types
 // ============================================================================
 
 export interface HistoryEntry {
+  id: string;
   action: string;
   timestamp: number;
-  data: unknown;
-  snapshot?: Map<string, WhiteboardAnnotation>;
-}
-
-// Event Types for collaboration
-export interface WhiteboardEvent {
-  type: string;
-  roomId: string;
-  userId: string;
-  timestamp: number;
-  payload: unknown;
-}
-
-export interface WhiteboardHistoryEntry {
   shapes: Map<string, WhiteboardShape>;
-  timestamp: number;
-  action: string;
-  data?: unknown;
+  viewport: ViewportState;
+  metadata?: {
+    userId?: string;
+    deviceId?: string;
+    sessionId?: string;
+  };
 }
 
 // ============================================================================
-// Export Types
+// Collaboration Types (Optional)
 // ============================================================================
 
-export type ExportFormat = 'png' | 'svg' | 'pdf' | 'webp' | 'jpeg' | 'jpg';
-
-export interface ExportOptions {
-  format: ExportFormat;
-  quality?: number;
-  dpi?: number;
-  // transparent flag removed; we always render against the whiteboard background
-  includeBackground?: boolean;
+export interface Collaborator {
+  id: string;
+  name: string;
+  color: string;
+  cursor?: CursorPosition;
+  lastSeen: number;
+  isActive: boolean;
 }
 
-// ============================================================================
-// Config Types
-// ============================================================================
-
-export interface WhiteboardConfig {
-  maxHistorySize: number;
-  defaultTool: WhiteboardTool;
-  defaultColor: string;
-  defaultSize: number;
-  enableCollaboration: boolean;
-  enableAutoSave: boolean;
-  autoSaveInterval: number;
-  minZoom: number;
-  maxZoom: number;
-  panSpeed: number;
-  zoomSpeed: number;
-}
-
-export const DEFAULT_WHITEBOARD_CONFIG: WhiteboardConfig = {
-  maxHistorySize: 100,
-  defaultTool: 'pen',
-  defaultColor: '#000000',
-  defaultSize: 3,
-  enableCollaboration: true,
-  enableAutoSave: false,
-  autoSaveInterval: 30000,
-  minZoom: 0.1,
-  maxZoom: 10,
-  panSpeed: 1,
-  zoomSpeed: 0.001,
-};
-
-// ============================================================================
-// Toolbar Types
-// ============================================================================
-
-export type ToolbarPosition = 'top' | 'right' | 'bottom' | 'left';
-
-export interface ToolbarState {
-  position: ToolbarPosition;
-  isDragging: boolean;
+export interface CursorPosition {
   x: number;
   y: number;
-  width: number;
-  height: number;
+  tool: ToolType;
+  timestamp: number;
 }
 
 // ============================================================================
-// Defaults / Constants
+// Performance Types
 // ============================================================================
 
-// Default gradient for highlighter
-export const DEFAULT_HIGHLIGHTER_GRADIENT: LinearGradient = {
-  type: 'linear',
-  angleDeg: 90,
-  stops: [
-    { offset: 0, color: '#FFFF00', alpha: 0.3 },
-    { offset: 0.5, color: '#FFFF00', alpha: 0.5 },
-    { offset: 1, color: '#FFFF00', alpha: 0.3 },
-  ],
-};
-
-// Emoji font stack for cross-platform color emoji support
-export const EMOJI_FONT_STACK =
-  '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla","EmojiOne Mozilla","Segoe UI Symbol",sans-serif';
-
-// Text font families
-export const TEXT_FONT_FAMILIES = [
-  { name: 'Inter', value: 'Inter, system-ui, sans-serif' },
-  { name: 'Arial', value: 'Arial, sans-serif' },
-  { name: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
-  { name: 'Times New Roman', value: '"Times New Roman", Times, serif' },
-  { name: 'Georgia', value: 'Georgia, serif' },
-  { name: 'Courier New', value: '"Courier New", Courier, monospace' },
-  { name: 'Verdana', value: 'Verdana, sans-serif' },
-  { name: 'Comic Sans MS', value: '"Comic Sans MS", cursive' },
-];
-
-// Text font sizes
-export const TEXT_FONT_SIZES = [
-  8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72, 96,
-];
-
-// Text font weights
-export const TEXT_FONT_WEIGHTS = [
-  { name: 'Light', value: 300 },
-  { name: 'Normal', value: 400 },
-  { name: 'Medium', value: 500 },
-  { name: 'Semi Bold', value: 600 },
-  { name: 'Bold', value: 700 },
-  { name: 'Extra Bold', value: 800 },
-];
-
-// ============================================================================
-// Simplified Aliases
-// ============================================================================
-
-export type TextObject = TextAnnotation;
-
-export type FreehandStroke = WhiteboardShape & {
-  type: 'pen';
-  points: WhiteboardPoint[];
-};
-
-export type HighlighterStroke = HighlighterAnnotation;
-
-export type BoardElement =
-  | EmojiObject
-  | TextObject
-  | FreehandStroke
-  | HighlighterStroke
-  | WhiteboardShape;
-
-export type Tool = WhiteboardTool;
-
-// ============================================================================
-// Store State Types
-// ============================================================================
-
-export interface WhiteboardState {
-  shapes: Map<string, WhiteboardShape>;
-  selectedShapeIds: Set<string>;
-  history: WhiteboardHistoryEntry[];
-  historyIndex: number;
-  // Store keeps transform; dimensions are supplied per-canvas (SSOT: rect.width/height)
-  viewport: ViewportTransform;
-  remoteCursors: Map<string, RemoteCursor>;
+export interface PerformanceMetrics {
+  fps: number;
+  frameTime: number;
+  drawCalls: number;
+  shapeCount: number;
+  pointCount: number;
+  memoryUsage?: number;
+  gpuUsage?: number;
 }
+
+export interface RenderContext {
+  ctx: CanvasRenderingContext2D;
+  viewport: ViewportState;
+  dpr: number;
+  quality: 'low' | 'medium' | 'high';
+  debug?: boolean;
+}
+
+// ============================================================================
+// Event Types
+// ============================================================================
+
+export interface WhiteboardEvent {
+  type: string;
+  timestamp: number;
+  data: any;
+}
+
+export interface PointerEventData {
+  x: number;
+  y: number;
+  pressure: number;
+  tiltX: number;
+  tiltY: number;
+  twist: number;
+  pointerType: string;
+  isPrimary: boolean;
+  buttons: number;
+}
+
+// ============================================================================
+// Export Types for Testing
+// ============================================================================
+
+export interface TestingExports {
+  toolState: any;
+  metrics: any;
+  [key: string]: any;
+}
+
+// ============================================================================
+// Utility Types
+// ============================================================================
+
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+export type RequireAtLeastOne<T, Keys extends keyof T = keyof T> =
+  Pick<T, Exclude<keyof T, Keys>> &
+  {
+    [K in Keys]-?: Required<Pick<T, K>> & Partial<Pick<T, Exclude<Keys, K>>>;
+  }[Keys];
+
+export type Mutable<T> = {
+  -readonly [P in keyof T]: T[P];
+};
