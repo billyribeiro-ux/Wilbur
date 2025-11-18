@@ -39,23 +39,10 @@ import {
   faFont,
   faSmile,
   faMousePointer,
-  faUndo,
-  faRedo,
-  faTrash,
-  faDownload,
-  faUpload,
-  faTimes,
-  faPalette,
-  faEllipsisH,
-  faEllipsisV,
-  faPlus,
-  faSearchMinus,
 } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { memo, useState, useRef, useCallback, useEffect } from 'react';
 import { setupCanvasDPR } from './utils/dprCanvas';
 
-import { cn } from '../../utils/cn';
 import { useWhiteboardStore } from './state/whiteboardStore';
 import { WhiteboardToolbar } from './components/WhiteboardToolbar';
 
@@ -110,11 +97,6 @@ const TOOL_CONFIG: Record<
   stamp: { label: 'Stamp', icon: faSmile, defaultSize: 32, opacity: 1 },
 };
 
-const COLORS = [
-  '#000000', '#FFFFFF', '#FF5555', '#FFC43D', '#36CFC9',
-  '#2E9BFF', '#A855F7', '#10B981', '#F97316', '#EC4899',
-];
-
 // const STAMPS = [
 //   '⭐', '✓', '✗', '❤️', '👍', '👎', '💡', '⚠️', '📌', '🎯', '🔥', '💯',
 // ];
@@ -147,7 +129,6 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   const tool = useWhiteboardStore((state) => state.tool);
   const setTool = useWhiteboardStore((state) => state.setTool);
   const color = useWhiteboardStore((state) => state.color);
-  const setColor = useWhiteboardStore((state) => state.setColor);
   const size = useWhiteboardStore((state) => state.size);
   const setSize = useWhiteboardStore((state) => state.setSize);
   const undo = useWhiteboardStore((state) => state.undo);
@@ -163,12 +144,6 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   const textInputDomRef = useRef<HTMLInputElement | null>(null);
   const textCommitGuardRef = useRef<boolean>(false);
   const textSpawnedRef = useRef<boolean>(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [isVertical, setIsVertical] = useState(false);
-  const [toolbarScale, setToolbarScale] = useState(1);
-  const [toolbarPos, setToolbarPos] = useState({ x: 24, y: 24 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
   // Refs for drawing state
   const currentShapeIdRef = useRef<string | null>(null);
@@ -663,6 +638,7 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   }, [canAnnotate, clearShapes, saveHistory, onEventEmit, roomId, userId]);
 
   // Implement proper load functionality
+  // @ts-ignore - Reserved for future WhiteboardToolbar integration
   const handleLoad = useCallback(() => {
     try {
       const input = document.createElement('input');
@@ -704,6 +680,7 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
     }
   }, [clearShapes, addShape, saveHistory]);
 
+  // @ts-ignore - Reserved for future WhiteboardToolbar integration
   const handleSave = useCallback(() => {
     try {
       if (!canvasRef.current) {
@@ -736,6 +713,7 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   }, [roomId, userId, shapes, onEventEmit]);
   
   // Add export as image function
+  // @ts-ignore - Reserved for future WhiteboardToolbar integration
   const handleExportImage = useCallback(() => {
     try {
       if (!canvasRef.current) {
@@ -883,25 +861,8 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   }, [isActive, canAnnotate, handleUndo, handleRedo, handleClear, onClose]);
 
   // ============================================================================
-  // UI HANDLERS (Toolbar)
+  // UI HANDLERS
   // ============================================================================
-  
-  const handleToggleOrientation = useCallback(() => {
-    setIsVertical(prev => {
-      const nextIsVertical = !prev;
-      if (typeof window !== 'undefined') {
-        if (nextIsVertical) {
-          setToolbarPos({ x: 24, y: window.innerHeight / 2 });
-        } else {
-          setToolbarPos({ x: window.innerWidth / 2, y: 24 });
-        }
-      }
-      return nextIsVertical;
-    });
-  }, []);
-
-  const handleZoomIn = () => setToolbarScale(s => Math.min(s + 0.2, 2.0));
-  const handleZoomOut = () => setToolbarScale(s => Math.max(s - 0.2, 0.6));
 
   // When switching to text tool, auto-spawn a text input at center ONCE per activation (Zoom-like behavior)
   useEffect(() => {
@@ -919,16 +880,6 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   if (!isActive) {
     return null;
   }
-
-  // Common button class
-  const toolButtonClass = cn(
-    'flex items-center justify-center rounded-lg transition-all',
-    isVertical 
-      ? 'w-12 h-12 bg-white text-gray-700 hover:bg-blue-50 border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300' 
-      : 'w-10 h-10 text-white hover:bg-gray-700'
-  );
-  
-  const toolButtonActiveClass = isVertical ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-700' : 'bg-blue-600 hover:bg-blue-700';
 
   return (
     <div className="absolute inset-0 z-50">
@@ -991,231 +942,6 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
         />
       )}
 
-      {/* OLD Toolbar - DEPRECATED - Keeping temporarily for reference */}
-      {false && canAnnotate && (
-        <div
-          className="absolute pointer-events-auto select-none"
-          style={{
-            left: `${toolbarPos.x}px`,
-            top: `${toolbarPos.y}px`,
-            transform: `${isVertical ? 'translateY(-50%)' : 'translateX(-50%)'} scale(${toolbarScale})`,
-            transformOrigin: isVertical ? '0 50%' : '50% 0',
-          }}
-          onPointerDown={(e) => {
-            if ((e.target as HTMLElement).closest('button')) return;
-            setIsDragging(true);
-            setDragStart({
-              x: e.clientX - toolbarPos.x,
-              y: e.clientY - toolbarPos.y,
-            });
-          }}
-          onPointerMove={(e) => {
-            if (isDragging) {
-              setToolbarPos({
-                x: e.clientX - dragStart.x,
-                y: e.clientY - dragStart.y,
-              });
-            }
-          }}
-          onPointerUp={() => setIsDragging(false)}
-          onPointerCancel={() => setIsDragging(false)} // Added for robustness
-          onMouseLeave={() => setIsDragging(false)} // Added for robustness
-        >
-          <div className={cn(
-            "flex gap-2 p-3 rounded-xl shadow-2xl cursor-move relative",
-            isVertical 
-              ? 'flex-col bg-white border border-gray-200' 
-              : 'flex-row items-center bg-gray-900/90 border border-gray-700'
-          )}>
-            
-            {/* --- Tools Group --- */}
-            {(Object.keys(TOOL_CONFIG) as WhiteboardTool[]).map((t) => {
-              const { icon, label } = TOOL_CONFIG[t];
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  className={cn(
-                    toolButtonClass,
-                    tool === t && toolButtonActiveClass,
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTool(t);
-                    setSize(TOOL_CONFIG[t].defaultSize);
-                  }}
-                  title={label}
-                  data-testid={`tool-${t}`}
-                >
-                  <FontAwesomeIcon icon={icon} className="w-5 h-5" />
-                </button>
-              );
-            })}
-
-            {/* --- Separator --- */}
-            <div className={cn( "mx-1", isVertical ? 'border-t border-gray-300 w-8' : 'border-l border-gray-600 h-8' )} />
-
-            {/* --- Color Picker --- */}
-            {/* FIXED: This block is now correct */}
-            <div className="relative">
-              <button
-                onClick={() => setShowColorPicker(!showColorPicker)}
-                className={cn( toolButtonClass, isVertical ? 'w-12 h-12' : 'w-10 h-10 p-2' )}
-                title="Color"
-              >
-                {isVertical ? (
-                  <FontAwesomeIcon icon={faPalette} className="w-5 h-5" style={{ color: color }} />
-                ) : (
-                  <div
-                    className="w-full h-full rounded-sm border-2 border-gray-400"
-                    style={{ backgroundColor: color }}
-                  />
-                )}
-              </button>
-              {showColorPicker && (
-                <div className={cn(
-                  "absolute p-3 rounded-lg shadow-xl grid grid-cols-5 gap-2 z-10",
-                  isVertical
-                    ? 'left-16 top-0 bg-white border border-gray-300'
-                    : 'left-1/2 -translate-x-1/2 top-14 bg-gray-800 border border-gray-700'
-                )}>
-                  {COLORS.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => { setColor(c); setShowColorPicker(false); }}
-                      className={cn(
-                        "w-7 h-7 rounded-md border-2 hover:scale-110 transition-transform",
-                         isVertical ? 'border-gray-300' : 'border-gray-400'
-                      )}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* --- Size Slider (for E2E tests) --- */}
-            <div className={cn(isVertical ? 'w-24 px-2' : 'w-32 px-2')} style={{ display: 'flex', alignItems: 'center' }}>
-              <input
-                type="range"
-                min={1}
-                max={32}
-                step={1}
-                value={size}
-                onChange={(e) => setSize(parseInt((e.target as HTMLInputElement).value, 10))}
-                aria-label="Brush size"
-              />
-            </div>
-            
-            {/* --- Separator --- */}
-            <div className={cn( "mx-1", isVertical ? 'border-t border-gray-300 w-8' : 'border-l border-gray-600 h-8' )} />
-
-            {/* --- Actions --- */}
-            <button
-              onClick={handleUndo}
-              disabled={historyIndex <= 0}
-              className={cn(toolButtonClass, 'disabled:opacity-30 disabled:cursor-not-allowed')}
-              title="Undo (Ctrl+Z)"
-            >
-              <FontAwesomeIcon icon={faUndo} className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleRedo}
-              disabled={historyIndex >= history.length - 1}
-              className={cn(toolButtonClass, 'disabled:opacity-30 disabled:cursor-not-allowed')}
-              title="Redo (Ctrl+Y)"
-            >
-              <FontAwesomeIcon icon={faRedo} className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleClear}
-              // FIXED: Simplified disabled logic
-              disabled={shapes.size === 0}
-              className={cn(
-                toolButtonClass, 
-                'disabled:opacity-30 disabled:cursor-not-allowed',
-                isVertical ? 'text-red-600 hover:bg-red-50' : 'text-red-500 hover:bg-red-800/50'
-              )}
-              title="Clear All (Ctrl+Backspace)"
-            >
-              <FontAwesomeIcon icon={faTrash} className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleSave}
-              className={cn(
-                toolButtonClass,
-                isVertical ? 'text-green-600 hover:bg-green-50' : 'text-green-500 hover:bg-green-800/50'
-              )}
-              title="Save as JSON"
-            >
-              <FontAwesomeIcon icon={faDownload} className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleLoad}
-              className={cn(
-                toolButtonClass,
-                isVertical ? 'text-blue-600 hover:bg-blue-50' : 'text-blue-500 hover:bg-blue-800/50'
-              )}
-              title="Load from JSON"
-            >
-              <FontAwesomeIcon icon={faUpload} className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleExportImage}
-              className={cn(
-                toolButtonClass,
-                isVertical ? 'text-purple-600 hover:bg-purple-50' : 'text-purple-500 hover:bg-purple-800/50'
-              )}
-              title="Export as PNG"
-            >
-              <FontAwesomeIcon icon={faDownload} className="w-4 h-4" />
-            </button>
-
-            {/* --- Separator --- */}
-            <div className={cn( "mx-1", isVertical ? 'border-t border-gray-300 w-8' : 'border-l border-gray-600 h-8' )} />
-            
-            {/* --- Zoom Controls --- */}
-            <button
-              onClick={handleZoomOut}
-              disabled={toolbarScale <= 0.6}
-              className={cn(toolButtonClass, 'disabled:opacity-30 disabled:cursor-not-allowed')}
-              title="Make bar smaller"
-            >
-              <FontAwesomeIcon icon={faSearchMinus} className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleZoomIn}
-              disabled={toolbarScale >= 2.0}
-              className={cn(toolButtonClass, 'disabled:opacity-30 disabled:cursor-not-allowed')}
-              title="Make bar bigger"
-            >
-              <FontAwesomeIcon icon={faPlus} className="w-5 h-5" />
-            </button>
-
-            {/* --- Separator --- */}
-            <div className={cn( "mx-1", isVertical ? 'border-t border-gray-300 w-8' : 'border-l border-gray-600 h-8' )} />
-
-            {/* --- Orientation Toggle --- */}
-            <button
-              onClick={handleToggleOrientation}
-              className={cn(toolButtonClass)}
-              title={isVertical ? "Switch to horizontal bar" : "Switch to vertical bar"}
-            >
-              <FontAwesomeIcon icon={isVertical ? faEllipsisH : faEllipsisV} className="w-5 h-5" />
-            </button>
-
-            {/* --- Close Button --- */}
-            <button
-              type="button"
-              className={cn( toolButtonClass, 'bg-red-600 text-white hover:bg-red-700' )}
-              onClick={onClose}
-              title="Close Whiteboard (Esc)"
-            >
-              <FontAwesomeIcon icon={faTimes} className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 });
