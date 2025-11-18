@@ -17,13 +17,16 @@ import React, { useEffect, useRef, useCallback, useState, useMemo } from 'react'
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { 
   setupCanvasWithDPR, 
+  getSystemDPR, 
   monitorDPRChanges 
 } from '../utils/dpr';
 import {
   screenToWorld,
+  worldToScreen,
   applyViewportTransform,
-  resetTransform
-} from '../utils/transform';
+  resetTransform,
+  applyScreenTransform
+} from '../utils/transform-correct';
 import { drawShape } from '../utils/drawPrimitives';
 import type { WhiteboardPoint, ViewportState } from '../types';
 

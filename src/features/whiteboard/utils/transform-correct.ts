@@ -14,11 +14,8 @@
  * ============================================================================
  */
 
-import type { WhiteboardPoint, ViewportState, ViewportTransform } from '../types';
+import type { WhiteboardPoint, ViewportState } from '../types';
 import { getSystemDPR } from './dpr';
-
-// Export type for compatibility
-export type { ViewportTransform };
 
 /**
  * Convert screen coordinates (CSS pixels) to world coordinates (0-1 normalized)
@@ -110,11 +107,6 @@ export function applyViewportTransform(
 export function resetTransform(ctx: CanvasRenderingContext2D): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
-
-/**
- * Alias for applyViewportTransform for backward compatibility
- */
-export const applyTransform = applyViewportTransform;
 
 /**
  * Apply transform for screen-space rendering (text, UI elements)
