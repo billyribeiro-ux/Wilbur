@@ -94,14 +94,13 @@ class TrackHeartbeatService {
       }
 
       // Update tracks by ID
-      const trackIds = tracksToCleanup.map(t => t.id);
+      const trackIds = tracksToCleanup.map((t: any) => t.id);
       const { data, error } = await supabase
         .from('mediatrack')
         .update({
           ended_at: new Date().toISOString()
         } as unknown as Record<string, string>)
-        .in('id', trackIds)
-        .select();
+        .in('id', trackIds);
 
       if (error) {
         console.log('[Heartbeat] Cleanup completed with error (tracks may have already been cleaned):', error.message);

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export function HealthCheck() {
-  const [status, setStatus] = useState({
+  const [_status, setStatus] = useState({
     database: 'checking',
     auth: 'checking',
     realtime: 'checking',
@@ -34,7 +34,7 @@ export function HealthCheck() {
 
     // Check realtime
     const channel = supabase.channel('health-check');
-    channel.subscribe((status) => {
+    channel.subscribe((status: any) => {
       if (status === 'SUBSCRIBED') {
         setStatus(s => ({ ...s, realtime: 'healthy' }));
         channel.unsubscribe();

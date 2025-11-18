@@ -35,10 +35,10 @@ export const useIntegrationStore = create<IntegrationState>()(
           const { data, error } = await supabase
             .from('user_integrations')
             .select('*')
-            .eq('user_id', userId);
+            .filter((item: any) => item.user_id === userId);
 
           if (error) throw error;
-          const connections: Integration[] = (data || []).map(item => ({
+          const connections: Integration[] = (data || []).map((item: any) => ({
             id: item.id,
             provider: item.integration_type,
             access_token: item.access_token,

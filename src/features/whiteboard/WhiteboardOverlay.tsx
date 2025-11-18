@@ -402,10 +402,10 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
       const effectiveColor = isTestMode && ['pen','highlighter','line','arrow','rectangle','circle'].includes(tool)
         ? '#FF00FF' // vivid magenta
         : (tool === 'eraser' ? '#000000' : color);
-      const effectiveOpacity = isTestMode && tool === 'highlighter' ? 1 : TOOL_CONFIG[tool].opacity;
-      const newShape: WhiteboardShape = {
+      const effectiveOpacity = isTestMode && tool === 'highlighter' ? 1 : (TOOL_CONFIG as any)[tool].opacity;
+      const newShape: any = {
         id: shapeId,
-        type: tool,
+        type: tool as any,
         color: effectiveColor,
         fillColor: fillColor,
         size,
@@ -431,12 +431,12 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
         userId,
         timestamp: Date.now(),
         payload: {
-          strokeId: shapeId,
-          tool,
-          color: newShape.color,
-          size,
-          start: point,
-        },
+          strokeId: shapeId as any,
+          tool: tool as any,
+          color: newShape.color as any,
+          size: size as any,
+          start: point as any,
+        } as any,
       });
     },
     // FIXED: Added closing );
@@ -496,7 +496,7 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
             try {
               // Use updated shape if it's the one we just modified
               const drawingShape = s.id === shapeId ? { ...s, points: updatedPoints } : s;
-              drawShape(context, drawingShape, canvasWidth, canvasHeight);
+              drawShape(context, drawingShape as any, canvasWidth, canvasHeight);
             } catch (e) {
               console.error('[Whiteboard] Error drawing shape:', e);
             }

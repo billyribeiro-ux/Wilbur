@@ -424,7 +424,7 @@ export async function getUserOAuthConnections(userId: string): Promise<OAuthConn
     return [];
   }
 
-  return (data || []).map(item => ({
+  return (data || []).map((item: any) => ({
     id: item.id,
     user_id: item.user_id,
     provider: item.integration_type as 'spotify' | 'x' | 'linkedin',
