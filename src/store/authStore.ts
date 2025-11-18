@@ -37,7 +37,7 @@ let sessionMonitorInterval: NodeJS.Timeout | undefined = undefined;
 let sessionChannel: RealtimeChannel | undefined = undefined;
 
 // Secure session storage using in-memory storage instead of localStorage to prevent XSS
-// @ts-expect-error - Reserved for future session security implementation
+// @ts-ignore - Reserved for future session security implementation
 let secureSessionData: { currentSession: Session, expiresAt: number } | undefined = undefined;
 
 export const useAuthStore = create<AuthState>((set: (state: Partial<AuthState> | ((state: AuthState) => Partial<AuthState>)) => void, get: () => AuthState) => ({

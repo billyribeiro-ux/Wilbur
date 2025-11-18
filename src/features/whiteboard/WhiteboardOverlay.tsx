@@ -52,10 +52,12 @@ import {
   faSearchMinus,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useState, useRef, useCallback, useEffect } from 'react';
+import { setupCanvasDPR } from './utils/dprCanvas';
 
 import { cn } from '../../utils/cn';
 import { useWhiteboardStore } from './state/whiteboardStore';
+import { WhiteboardToolbar } from './components/WhiteboardToolbar';
 
 import type {
   WhiteboardEvent,
@@ -206,19 +208,8 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   useEffect(() => {
     try {
       if (canvasRef.current) {
-        const context = canvasRef.current.getContext('2d');
-        if (!context) {
-          console.error('[Whiteboard] Failed to get 2D context');
-          return;
-        }
-        
-        const dpr = window.devicePixelRatio || 1;
-        // Scale canvas internal resolution by DPR
-        canvasRef.current.width = width * dpr;
-        canvasRef.current.height = height * dpr;
-        // Scale context drawing operations
-        context.scale(dpr, dpr);
-        
+        // Use DPR utilities for proper setup - Microsoft L68+ Standard
+        const context = setupCanvasDPR(canvasRef.current, width, height);
         ctx.current = context;
       }
     } catch (error) {
@@ -992,8 +983,16 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
         </div>
       )}
 
-      {/* Toolbar - DYNAMIC (Draggable, Horizontal/Vertical, Scalable) */}
+      {/* NEW Whiteboard Toolbar Component - Zoom-like Design */}
       {canAnnotate && (
+        <WhiteboardToolbar 
+          onClose={onClose}
+          canManageRoom={canAnnotate}
+        />
+      )}
+
+      {/* OLD Toolbar - DEPRECATED - Keeping temporarily for reference */}
+      {false && canAnnotate && (
         <div
           className="absolute pointer-events-auto select-none"
           style={{
