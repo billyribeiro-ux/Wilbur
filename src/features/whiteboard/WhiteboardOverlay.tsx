@@ -179,13 +179,29 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   //   // ... event processing code ...
   // }, [incomingEvents, history, historyIndex]);
 
+  // Log when whiteboard becomes active
+  useEffect(() => {
+    if (isActive) {
+      console.log('[Whiteboard] Activated with props:', { 
+        width, 
+        height, 
+        canAnnotate, 
+        roomId, 
+        userId,
+        shapesCount: shapes.size 
+      });
+    }
+  }, [isActive, width, height, canAnnotate, roomId, userId, shapes.size]);
+
   // Initialize canvas context with DPR scaling
   useEffect(() => {
     try {
       if (canvasRef.current) {
+        console.log('[Whiteboard] Initializing canvas with DPR:', { width, height, dpr: window.devicePixelRatio });
         // Use DPR utilities for proper setup - Microsoft L68+ Standard
         const context = setupCanvasDPR(canvasRef.current, width, height);
         ctx.current = context;
+        console.log('[Whiteboard] Canvas initialized successfully');
       }
     } catch (error) {
       console.error('[Whiteboard] Canvas initialization error:', error);
@@ -878,6 +894,12 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   }, [tool, textInput, width, height]);
 
   if (!isActive) {
+    return null;
+  }
+
+  // Don't render if dimensions are invalid
+  if (width <= 0 || height <= 0) {
+    console.warn('[Whiteboard] Invalid dimensions:', { width, height });
     return null;
   }
 
