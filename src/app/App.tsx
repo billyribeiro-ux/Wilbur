@@ -14,9 +14,6 @@ import { FluentProvider, webDarkTheme, Spinner, type Theme } from '@fluentui/rea
 // Removed unused supabase import - authStore.initialize() is single source of truth
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
 import { NotesView } from '../components/trading/NotesView';
-// WhiteboardOverlay imported only inside harness now; remove direct import to avoid unused variable warning
-// import { WhiteboardContainer } from '@/features/whiteboard/components/WhiteboardContainer';
-import { TestWhiteboardHarness } from '../features/whiteboard/TestWhiteboardHarness';
 import { TestTradingRoomShell } from '../components/trading/TestTradingRoomShell';
 import type { Session, User } from '@supabase/supabase-js';
 import { ToastContainer } from '../components/ToastContainer';
@@ -116,8 +113,10 @@ const TestTradingRoom: FC = () => {
 // Test Whiteboard route wrapper (always active overlay + toolbar)
 const TestWhiteboard: FC = () => (
   <InjectTestSession>
-    {/* Harness component encapsulates test-specific globals & history counter */}
-    <TestWhiteboardHarness />
+    {/* Placeholder for whiteboard testing - harness removed during cleanup */}
+    <div data-testid="whiteboard-test-placeholder">
+      Whiteboard test harness has been removed. Use the main whiteboard in TradingRoom.
+    </div>
     {/* Fallback (kept) invisible canvas to ensure locator resilience if harness fails extremely early */}
     <canvas
       data-testid="whiteboard-canvas-fallback"
