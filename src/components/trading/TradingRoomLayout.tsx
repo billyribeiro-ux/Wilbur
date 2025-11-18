@@ -32,8 +32,9 @@ import { GeneralSettingsModal } from '../modals/GeneralSettingsModal';
 
 import { HorizontalResizeHandle } from './HorizontalResizeHandle';
 import { VerticalResizeHandle } from './VerticalResizeHandle';
-import { WhiteboardOverlay } from '../../features/whiteboard/WhiteboardOverlay';
-import type { WhiteboardEvent } from '../../features/whiteboard/whiteboardTypes';
+import { WhiteboardSurface } from '../../features/whiteboard/components/WhiteboardSurface';
+import { WhiteboardCanvas } from '../../features/whiteboard/components/WhiteboardCanvas';
+import { WhiteboardToolbar } from '../../features/whiteboard/components/WhiteboardToolbar';
 import type { TradingRoomLayoutProps } from './types';
 
 export function TradingRoomLayout({
@@ -364,18 +365,29 @@ export function TradingRoomLayout({
           {/* Main Content Viewer */}
           <div className="flex-1 min-h-0 relative">
             <ContentViewer activeTab={state.contentTab} onTabChange={handlers.onTabChange} />
-            {/* Whiteboard - Always available when active, not limited to screens tab */}
-            <WhiteboardOverlay
-              isActive={state.isWhiteboardActive}
-              canAnnotate={state.canManageRoom}
-              width={state.size?.w ?? 0}
-              height={state.size?.h ?? 0}
-              roomId={state.room.id}
-              userId={state.user?.id || ''}
-              onClose={handlers.onWhiteboardClose}
-              onEventEmit={handlers.onWhiteboardEvent}
-              incomingEvents={state.whiteboardEvents as WhiteboardEvent[]}
-            />
+            
+            {/* Whiteboard - New Architecture with Surface + Canvas + Toolbar */}
+            {state.isWhiteboardActive && state.size && state.size.w > 0 && state.size.h > 0 && (
+              <div className="absolute inset-0 z-50 pointer-events-none">
+                <WhiteboardSurface 
+                  width={state.size.w} 
+                  height={state.size.h}
+                  className="pointer-events-auto"
+                >
+                  <WhiteboardCanvas 
+                    width={state.size.w}
+                    height={state.size.h}
+                    canAnnotate={state.canManageRoom}
+                  />
+                  {state.canManageRoom && (
+                    <WhiteboardToolbar 
+                      onClose={handlers.onWhiteboardClose}
+                      canManageRoom={state.canManageRoom}
+                    />
+                  )}
+                </WhiteboardSurface>
+              </div>
+            )}
           </div>
         </div>
       </main>
