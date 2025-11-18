@@ -41,14 +41,16 @@ const toolState: HighlighterToolState = {
 
 export function activateHighlighterTool(canvasElement?: HTMLElement): void {
   toolState.isActive = true;
+  
+  // Initialize batcher and cache
+  toolState.batcher = pointerBatcher(() => {}, 8);
+  toolState.viewportCache = viewportCache();
 
   // Pre-cache viewport if canvas element provided
   if (canvasElement) {
     const store = useWhiteboardStore.getState();
-      toolState.viewportCache!.get(canvasElement, store.viewport);
+    toolState.viewportCache.get(canvasElement, store.viewport);
   }
-    toolState.batcher = pointerBatcher(() => {}, 8);
-    toolState.viewportCache = viewportCache();
 }
 
 export function deactivateHighlighterTool(): void {
