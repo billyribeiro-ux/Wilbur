@@ -3,7 +3,7 @@
  * Quick test to diagnose why whiteboard tests are failing
  */
 
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('Whiteboard Diagnostic', () => {
   test('should find whiteboard button', async ({ page }) => {

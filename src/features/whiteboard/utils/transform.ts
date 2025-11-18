@@ -225,8 +225,8 @@ export function clampZoom(zoom: number): number {
  */
 export function calculateFitZoom(
   worldBounds: { width: number; height: number },
-  viewportWidth: number,
-  viewportHeight: number,
+  _viewportWidth: number,
+  _viewportHeight: number,
   padding: number = 0.1
 ): number {
   if (worldBounds.width === 0 || worldBounds.height === 0) {

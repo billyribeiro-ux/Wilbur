@@ -280,7 +280,6 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     
     // Get pointer position for zoom center
     const pos = getPointerPosition(e as any);
-    const worldPos = screenToWorld(pos.x, pos.y, viewportState);
     
     // Calculate new pan to keep pointer position stable
     const scale = newZoom / viewport.zoom;
