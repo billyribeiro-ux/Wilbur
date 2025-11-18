@@ -15,7 +15,7 @@ type UserRow = Database['public']['Tables']['users']['Row'];
 type RoomRow = Database['public']['Tables']['rooms']['Row'];
 import type { ChatMessage as ChatMessageType } from '../../types/database.types';
 
-import type { LoadingStates } from './chatTypes';
+import type { LoadingStates } from '../../features/chat/chat.types';
 import { 
   MessageType, 
   LoadingState,

@@ -3,7 +3,7 @@
  * Centralized color management for user roles and chat elements
  */
 
-import type { RoleStyle } from './chatTypes';
+import type { RoleStyle } from '../../features/chat/chat.types';
 import { UserRoleType } from './constants';
 
 // ============================================================================

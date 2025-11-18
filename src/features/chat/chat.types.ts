@@ -5,6 +5,8 @@
  * SSR-safe, readonly where appropriate
  */
 
+import { LoadingState } from '../../components/chat/constants';
+
 // ---------------------------------------------------------------------------
 // Primitives
 // ---------------------------------------------------------------------------
@@ -13,6 +15,32 @@ export type ChatMessageId = string;
 export type ChatUserId = string;
 export type ChatRoomId = string;
 export type ChatContentType = 'text' | 'image' | 'file' | 'gif' | 'emoji';
+
+// ---------------------------------------------------------------------------
+// UI Types
+// ---------------------------------------------------------------------------
+
+export interface RoleStyle {
+  textColor: string;
+  bgColor: string;
+  ringClass: string;
+  badge?: string;
+}
+
+export interface LoadingStates {
+  messages: LoadingState;
+  sending: LoadingState;
+  deleting: Set<string>;
+  pinning: Set<string>;
+  uploading: LoadingState;
+}
+
+export interface UploadProgress {
+  percentage: number;
+  bytesUploaded: number;
+  totalBytes: number;
+  fileName: string;
+}
 
 // ---------------------------------------------------------------------------
 // Core Types
