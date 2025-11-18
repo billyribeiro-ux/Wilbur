@@ -13,9 +13,10 @@ import { getPointerInCanvas } from '../utils/pointer';
 import {
   pointerBatcher,
   viewportCache,
+  toViewportState,
   simplifyPoints,
   simplifyPointsByDistance,
-} from '../utils/performance';
+} from '../../../utils/performance';
 import type { ViewportTransform, WhiteboardPoint, WhiteboardAnnotation } from '../types';
 
 const __BROWSER__ = typeof window !== 'undefined' && typeof document !== 'undefined';
@@ -58,7 +59,7 @@ export function activatePenTool(canvasElement?: HTMLCanvasElement): void {
 
     // Pre-cache viewport for this canvas
     const store = useWhiteboardStore.getState();
-    viewportCache.get(canvasElement, store.viewport);
+    viewportCache.get(canvasElement, toViewportState(store.viewport, canvasElement));
 
     // Pen-like cursor (SVG) with crosshair fallback
     try {
@@ -114,7 +115,7 @@ export function handlePenPointerDown(
   }
 
   // Use cached viewport - no getBoundingClientRect() spam!
-  const { viewportState } = viewportCache.get(canvasElement, viewport);
+  const { viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
 
   const { x, y } = getPointerInCanvas(e, canvasElement);
   const startWorld = screenToWorld(x, y, viewportState);
@@ -164,7 +165,7 @@ export function handlePenPointerMove(
   if (!toolState.isActive || !toolState.isDrawing || !toolState.currentShapeId) return false;
 
   // Use cached viewport - MASSIVE performance win
-  const { viewportState } = viewportCache.get(canvasElement, viewport);
+  const { viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
 
   const { x, y } = getPointerInCanvas(e, canvasElement);
   const worldPoint = screenToWorld(x, y, viewportState);
@@ -284,12 +285,14 @@ export function renderPenStroke(
 }
 
 /**
- * Update viewport cache when viewport changes
- * Call this when zoom/pan changes
+ * Update cached viewport when it changes
+ * Since DPR is SSOT, we clear cache to force fresh calculation on next access
  */
 export function updatePenToolViewport(
-  canvasElement: HTMLElement,
-  viewport: ViewportTransform
+  _canvasElement: HTMLElement,
+  _viewport: ViewportTransform
 ): void {
-  viewportCache.updateViewport(canvasElement, viewport);
+  // Clear cache to force fresh viewport calculation on next access
+  // This respects DPR as SSOT - dimensions will be recalculated from element
+  viewportCache.clear();
 }

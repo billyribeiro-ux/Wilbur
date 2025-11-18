@@ -1,4 +1,4 @@
-// Added: 2025-01-24 - Claude/Cursor - Comprehensive room service with enhanced error handling and retry logic
+// Added: 2025-01-24 - Comprehensive room service with enhanced error handling and retry logic
 import { supabase } from '../lib/supabase';
 import type { Room } from '../types/database.types';
 
@@ -48,7 +48,7 @@ async function retryOperation<T>(
   baseDelayMs: number = 1000
 ): Promise<T> {
   let lastError: Error;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
@@ -56,20 +56,15 @@ async function retryOperation<T>(
       lastError = error instanceof Error ? error : new Error('Operation failed');
       
       if (attempt === maxRetries) {
-        console.error(`[retryOperation] All ${maxRetries} attempts failed`);
         throw lastError;
       }
       
       const delay = baseDelayMs * Math.pow(2, attempt - 1);
-      console.warn(
-        `[retryOperation] Attempt ${attempt} failed, retrying in ${delay}ms...`,
-        lastError.message
-      );
       
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -134,44 +129,26 @@ class RoomService {
   // Added: 2025-01-24 - Get room by ID with error handling
   async getRoomById(roomId: string): Promise<RoomResponse> {
     try {
-      console.log('[RoomService] getRoomById: Fetching room with id:', roomId);
-      
       const { data, error } = await retryOperation(async () => {
-        console.log('[RoomService] getRoomById: Attempting Supabase query...');
         const result = await supabase
           .from('rooms')
           .select('*')
           .eq('id', roomId)
           .single();
-        
+      
         if (result.error) {
-          console.error('[RoomService] getRoomById: Supabase error:', {
-            message: result.error.message,
-            details: result.error.details,
-            hint: result.error.hint,
-            code: result.error.code
-          });
           throw result.error;
         }
-        
-        console.log('[RoomService] getRoomById: Supabase query successful, room found:', {
-          id: result.data?.id,
-          title: result.data?.title,
-          tenant_id: result.data?.tenant_id
-        });
-        
+      
         return result;
       });
 
       if (error) {
-        console.error('[RoomService] getRoomById: Error after retry:', error);
         throw error;
       }
-      
-      console.log('[RoomService] getRoomById: Successfully retrieved room');
+    
       return { data, error: undefined };
     } catch (error) {
-      console.error('[RoomService] getRoomById: Caught exception:', error);
       reportError(error instanceof Error ? error : new Error(String(error)), ErrorSeverity.MEDIUM, {
         component: 'RoomService',
         action: 'getRoomById',

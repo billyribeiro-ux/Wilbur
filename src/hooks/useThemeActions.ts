@@ -385,7 +385,7 @@ export function useRealtimeMessages(roomId: string) {
         schema: 'public',
         table: 'chat_messages',
         filter: `room_id=eq.${roomId}`
-      }, (payload) => {
+      }, (payload: any) => {
         console.log('[useRealtimeMessages] Event received:', payload.eventType);
         
         if (payload.eventType === 'INSERT') {

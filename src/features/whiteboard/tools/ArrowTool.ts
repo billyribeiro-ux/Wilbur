@@ -10,8 +10,8 @@
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { screenToWorld } from '../utils/transform';
 import { getPointerInCanvas } from '../utils/pointer';
-import { pointerBatcher, viewportCache } from '../utils/performance';
-import type { ViewportTransform, WhiteboardPoint, WhiteboardAnnotation, ViewportState } from '../types';
+import { pointerBatcher, viewportCache, toViewportState } from '../../../utils/performance';
+import type { ViewportTransform, WhiteboardPoint, WhiteboardAnnotation } from '../types';
 
 const __BROWSER__ = typeof window !== 'undefined' && typeof document !== 'undefined';
 
@@ -55,7 +55,7 @@ export function activateArrowTool(canvasElement?: HTMLCanvasElement): void {
 
     // Pre-cache viewport
     const store = useWhiteboardStore.getState();
-    viewportCache.get(canvasElement, store.viewport);
+    viewportCache.get(canvasElement, toViewportState(store.viewport, canvasElement));
 
     canvasElement.style.cursor = 'crosshair';
   }
@@ -99,7 +99,7 @@ export function handleArrowPointerDown(
   } catch { /* non-fatal */ }
 
   // Use cached viewport - no getBoundingClientRect() spam!
-  const { viewportState } = viewportCache.get(canvasElement, viewport);
+  const { viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
 
   // Canvas-relative SCREEN → WORLD (CSS px → world)
   const { x: sx, y: sy } = getPointerInCanvas(e, canvasElement);
@@ -147,7 +147,7 @@ export function handleArrowPointerMove(
   if (!shape || !shape.points || shape.points.length < 1) return false;
 
   // Use cached viewport - MASSIVE performance win!
-  const { viewportState } = viewportCache.get(canvasElement, viewport);
+  const { viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
 
   // SCREEN → WORLD
   const { x: sx, y: sy } = getPointerInCanvas(e, canvasElement);

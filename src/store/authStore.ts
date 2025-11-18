@@ -32,30 +32,14 @@ interface AuthState {
   cleanupSession: () => Promise<void>;
 }
 
-// Microsoft pattern: Configuration-driven storage key
-const getStorageKey = (): string => {
-  try {
-    // Use environment variable directly since supabaseUrl is protected
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    if (supabaseUrl) {
-      const url = new URL(supabaseUrl);
-      const projectRef = url.hostname.split('.')[0];
-      return `sb-${projectRef}-auth-token`;
-    }
-  } catch (error) {
-    console.error('[AuthStore] Failed to parse Supabase URL:', error);
-  }
-  // Fallback to hardcoded project ref
-  return 'sb-ngknerhbcrcwjlxquzsf-auth-token';
-};
-
-const STORAGE_KEY = getStorageKey();
-
 // Microsoft Azure AD pattern: Session monitoring state
 let sessionMonitorInterval: NodeJS.Timeout | undefined = undefined;
 let sessionChannel: RealtimeChannel | undefined = undefined;
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+// Secure session storage using in-memory storage instead of localStorage to prevent XSS
+let secureSessionData: { currentSession: Session, expiresAt: number } | undefined = undefined;
+
+export const useAuthStore = create<AuthState>((set: (state: Partial<AuthState> | ((state: AuthState) => Partial<AuthState>)) => void, get: () => AuthState) => ({
   user: undefined,
   session: undefined,
   isAuthenticated: false,
@@ -81,8 +65,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           sessionToken: session.access_token,
         });
 
-        // Session enforcement disabled to prevent unexpected logouts
-        // await get().enforceSession(session.user.id);
+        // Store session securely in memory
+        secureSessionData = {
+          currentSession: session,
+          expiresAt: Math.floor(Date.now() / 1000) + session.expires_in
+        };
+
+        // Session enforcement enabled for security
+        await get().enforceSession(session.user.id);
       }
 
       // Microsoft Azure AD pattern: Monitor session changes
@@ -114,17 +104,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isAuthenticated: true,
         });
 
-        // Ensure session is persisted to localStorage
-        const existingToken = localStorage.getItem(STORAGE_KEY);
-        
-        if (!existingToken) {
-          const tokenData = {
-            currentSession: data.session,
-            expiresAt: Math.floor(Date.now() / 1000) + data.session.expires_in
-          };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(tokenData));
-        }
-        
+        // Store session securely in memory
+        secureSessionData = {
+          currentSession: data.session,
+          expiresAt: Math.floor(Date.now() / 1000) + data.session.expires_in
+        };
+
         // Microsoft Azure AD pattern: Enforce single session
         await get().enforceSession(data.user.id);
       }
@@ -158,7 +143,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: false,
       });
 
-      localStorage.removeItem(STORAGE_KEY);
+      // Clear secure session data
+      secureSessionData = undefined;
       
     } catch (error) {
       console.error('[AuthStore] Fatal sign out error:', error);
@@ -178,18 +164,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: true,
       });
       
-      const tokenData = {
+      // Store session securely in memory
+      secureSessionData = {
         currentSession: session,
         expiresAt: Math.floor(Date.now() / 1000) + session.expires_in
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tokenData));
     } else {
       set({
         user: undefined,
         session: undefined,
         isAuthenticated: false,
       });
-      localStorage.removeItem(STORAGE_KEY);
+      // Clear secure session data
+      secureSessionData = undefined;
     }
   },
 
@@ -209,11 +196,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isAuthenticated: true,
         });
         
-        const tokenData = {
+        // Store session securely in memory
+        secureSessionData = {
           currentSession: session,
           expiresAt: Math.floor(Date.now() / 1000) + session.expires_in
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(tokenData));
       }
     } catch (error) {
       console.error('[AuthStore] Fatal refresh error:', error);
@@ -229,7 +216,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Generate unique session token
       const sessionToken = `session_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
       
-      console.log('[AuthStore] Enforcing single session for user:', userId);
+      // Enforcing single session for user
       
       // Delete ALL existing sessions for this user
       await supabase
@@ -263,7 +250,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       
       set({ sessionToken });
-      console.log('[AuthStore] Session enforced:', sessionToken);
+      // Session enforced
       
       // Start monitoring for duplicate logins
       get().monitorSession();
@@ -277,7 +264,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user, sessionToken } = get();
     if (!user || !sessionToken) return;
     
-    console.log('[AuthStore] Starting session monitoring');
+    // Starting session monitoring
     
     // Clear any existing monitoring
     if (sessionMonitorInterval) {
@@ -288,7 +275,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     
     // Microsoft Pattern: Passive session monitoring - no automatic logouts
-    console.log('[AuthStore] Session monitoring initialized (passive mode)');
+    // Session monitoring initialized (passive mode)
     
     // Only update last activity periodically, don't force logout
     sessionMonitorInterval = setInterval(async () => {
@@ -308,7 +295,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   cleanupSession: async () => {
     const { sessionToken } = get();
     
-    console.log('[AuthStore] Cleaning up session');
+    // Cleaning up session
     
     // Stop monitoring
     if (sessionMonitorInterval) {

@@ -10,7 +10,7 @@
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { screenToWorld } from '../utils/transform';
 import { getPointerInCanvas } from '../utils/pointer';
-import { pointerBatcher, viewportCache } from '../utils/performance';
+import { pointerBatcher, viewportCache, toViewportState } from '../../../utils/performance';
 import type {
   ViewportTransform,
   WhiteboardPoint,
@@ -50,9 +50,9 @@ export function activateLineTool(canvasElement?: HTMLCanvasElement): void {
   if (canvasElement) {
     toolState.canvasEl = canvasElement;
 
-    // Pre-cache viewport
+    // Pre-cache viewport (convert ViewportTransform to ViewportState with CSS dimensions)
     const store = useWhiteboardStore.getState();
-    viewportCache.get(canvasElement, store.viewport);
+    viewportCache.get(canvasElement, toViewportState(store.viewport, canvasElement));
 
     try {
       canvasElement.style.cursor = 'crosshair';
@@ -107,7 +107,8 @@ export function handleLinePointerDown(
   }
 
   // Use cached viewport - no getBoundingClientRect() spam!
-  const { rect, viewportState } = viewportCache.get(canvasElement, viewport);
+  // Convert ViewportTransform to ViewportState (respecting DPR as SSOT)
+  const { rect, viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;
 
@@ -158,7 +159,8 @@ export function handleLinePointerMove(
   const { x, y } = getPointerInCanvas(e, canvasElement);
 
   // Use cached viewport - MASSIVE performance win!
-  const { viewportState } = viewportCache.get(canvasElement, viewport);
+  // Convert ViewportTransform to ViewportState (respecting DPR as SSOT)
+  const { viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
 
   const endWorld = screenToWorld(x, y, viewportState);
 

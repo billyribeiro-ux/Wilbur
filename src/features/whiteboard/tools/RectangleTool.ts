@@ -10,7 +10,7 @@
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { screenToWorld } from '../utils/transform';
 import { getPointerInCanvas } from '../utils/pointer';
-import { pointerBatcher, viewportCache } from '../utils/performance';
+import { pointerBatcher, viewportCache, toViewportState } from '../../../utils/performance';
 import type {
   ViewportTransform,
   WhiteboardPoint,
@@ -55,7 +55,7 @@ export function activateRectangleTool(canvasElement?: HTMLCanvasElement): void {
 
     // Pre-cache viewport
     const store = useWhiteboardStore.getState();
-    viewportCache.get(canvasElement, store.viewport);
+    viewportCache.get(canvasElement, toViewportState(store.viewport, canvasElement));
 
     try {
       canvasElement.style.cursor = 'crosshair';
@@ -115,7 +115,7 @@ export function handleRectanglePointerDown(
   const { x, y } = getPointerInCanvas(e, canvasElement);
 
   // Use cached viewport - no getBoundingClientRect() spam!
-  const { viewportState } = viewportCache.get(canvasElement, viewport);
+  const { viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
 
   // CSS px → WORLD
   const worldPoint = screenToWorld(x, y, viewportState);
@@ -163,7 +163,7 @@ export function handleRectanglePointerMove(
   const { x, y } = getPointerInCanvas(e, canvasElement);
 
   // Use cached viewport - MASSIVE performance win!
-  const { viewportState } = viewportCache.get(canvasElement, viewport);
+  const { viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
 
   // CSS px → WORLD
   let corner = screenToWorld(x, y, viewportState);

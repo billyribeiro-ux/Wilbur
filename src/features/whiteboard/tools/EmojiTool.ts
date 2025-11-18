@@ -13,7 +13,7 @@ import { useWhiteboardStore } from '../state/whiteboardStore';
 import { screenToWorld } from '../utils/transform';
 import { hitTestEmoji } from '../utils/hitTest';
 import { debug } from '../utils/debug';
-import { pointerBatcher, viewportCache } from '../utils/performance';
+import { pointerBatcher, viewportCache, toViewportState } from '../../../utils/performance';
 import type { EmojiAnnotation, WhiteboardPoint, ViewportState } from '../types';
 
 export interface EmojiToolState {
@@ -85,7 +85,7 @@ export function activateEmojiTool(canvasElement?: HTMLElement) {
   // Pre-cache viewport if canvas element provided
   if (canvasElement) {
     const store = useWhiteboardStore.getState();
-    viewportCache.get(canvasElement, store.viewport);
+    viewportCache.get(canvasElement, toViewportState(store.viewport, canvasElement));
   }
 
   const store = useWhiteboardStore.getState();
@@ -170,7 +170,7 @@ export function handleEmojiPointerDown(
   if (!toolState.isActive) return false;
 
   // Use cached viewport - no getBoundingClientRect() spam!
-  const { rect, viewportState } = viewportCache.get(canvasElement, viewport);
+  const { rect, viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;
 
@@ -298,7 +298,7 @@ export function handleEmojiPointerMove(
   if (!toolState.isActive) return false;
 
   // Use cached viewport - MASSIVE performance win!
-  const { rect, viewportState } = viewportCache.get(canvasElement, viewport);
+  const { rect, viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;
 

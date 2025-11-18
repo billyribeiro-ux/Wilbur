@@ -43,9 +43,11 @@ export const useSpotifyPlayerStore = create<SpotifyPlayerState>()(
       pollInterval: undefined,
 
       startPolling: async (userId: string) => {
+        // Clean up any existing interval first
         const { pollInterval } = get();
         if (pollInterval) {
           clearInterval(pollInterval);
+          set({ pollInterval: undefined });
         }
 
         const interval = setInterval(async () => {

@@ -87,7 +87,14 @@ export function handlePenPointerDown(
 
   // CSS px → world
   const { x, y } = getPointerInCanvas(e, canvasElement);
-  const worldPoint = screenToWorld(x, y, viewport);
+  // Convert ViewportTransform to ViewportState (respecting DPR as SSOT)
+  const rect = canvasElement.getBoundingClientRect();
+  const viewportState = {
+    ...viewport,
+    width: rect.width,   // CSS pixels
+    height: rect.height  // CSS pixels
+  };
+  const worldPoint = screenToWorld(x, y, viewportState);
 
   const id = makeId();
   toolState.currentShapeId = id;
@@ -126,7 +133,14 @@ export function handlePenPointerMove(
   if (!shape) return false;
 
   const { x, y } = getPointerInCanvas(e, canvasElement);
-  const worldPoint = screenToWorld(x, y, viewport);
+  // Convert ViewportTransform to ViewportState (respecting DPR as SSOT)
+  const rect = canvasElement.getBoundingClientRect();
+  const viewportState = {
+    ...viewport,
+    width: rect.width,   // CSS pixels
+    height: rect.height  // CSS pixels
+  };
+  const worldPoint = screenToWorld(x, y, viewportState);
 
   // Append point
   store.updateShape(toolState.currentShapeId, {

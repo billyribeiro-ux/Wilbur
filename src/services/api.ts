@@ -6,7 +6,7 @@
  */
 
 import { supabase, withAuth } from '../lib/supabase';
-import type { Poll, Room, Database, ChatMessage, Alert, RoomMembership } from '../types/database.types';
+import type { Database, Room, ChatMessage, Alert, RoomMembership, Poll } from '../types/database.types';
 
 type TableName = keyof Database['public']['Tables'];
 import { DatabaseError } from '../lib/errors';
@@ -405,7 +405,7 @@ export const getRoomAlerts = async (
  */
 export const getTenantAlerts = async (_tenantId: string) => {
   // Enterprise standard: Only warn in development
-  if (import.meta.env.DEV) {
+  if (import.meta.env.MODE === 'development') {
     console.warn('[API] getTenantAlerts: DEPRECATED - Use getRoomAlerts(roomId) instead. Alerts table has room_id, not tenant_id.');
   }
   return [];
@@ -418,7 +418,7 @@ export const getTenantAlerts = async (_tenantId: string) => {
  */
 export const getUserRoomRole = async (userId: string, roomId: string): Promise<RoomMembership | undefined> => {
   try {
-    if (import.meta.env.DEV) {
+    if (import.meta.env.MODE === 'development') {
       console.debug('[API] getUserRoomRole: Fetching membership for user', userId, 'in room', roomId);
     }
 
@@ -432,7 +432,7 @@ export const getUserRoomRole = async (userId: string, roomId: string): Promise<R
     if (error) {
       // PGRST116 = "No rows returned" - user is not a member of the room
       if (error.code === 'PGRST116') {
-        if (import.meta.env.DEV) {
+        if (import.meta.env.MODE === 'development') {
           console.debug('[API] getUserRoomRole: User not found in room_memberships - user may not be registered in this room');
         }
         return undefined;
@@ -448,7 +448,7 @@ export const getUserRoomRole = async (userId: string, roomId: string): Promise<R
     }
 
     if (!data) {
-      if (import.meta.env.DEV) {
+      if (import.meta.env.MODE === 'development') {
         console.debug('[API] getUserRoomRole: No membership data found');
       }
       return undefined;
@@ -456,7 +456,7 @@ export const getUserRoomRole = async (userId: string, roomId: string): Promise<R
 
   const membership = data as RoomMembership;
     
-    if (import.meta.env.DEV) {
+    if (import.meta.env.MODE === 'development') {
       console.debug('[API] getUserRoomRole: User role is', membership.role);
     }
 
@@ -474,14 +474,14 @@ export const getUserRoomRole = async (userId: string, roomId: string): Promise<R
  */
 export const ensureUserRoomMembership = async (userId: string, roomId: string): Promise<RoomMembership | undefined> => {
   try {
-    if (import.meta.env.DEV) {
+    if (import.meta.env.MODE === 'development') {
       console.debug('[API] ensureUserRoomMembership: Ensuring user', userId, 'is registered in room', roomId);
     }
 
     // First, check if membership already exists
     const existing = await getUserRoomRole(userId, roomId);
     if (existing) {
-      if (import.meta.env.DEV) {
+      if (import.meta.env.MODE === 'development') {
         console.debug('[API] ensureUserRoomMembership: User already registered with role', existing.role);
       }
       return existing;
@@ -508,7 +508,7 @@ export const ensureUserRoomMembership = async (userId: string, roomId: string): 
       return undefined;
     }
 
-    if (import.meta.env.DEV) {
+    if (import.meta.env.MODE === 'development') {
       console.debug('[API] ensureUserRoomMembership: User registered as member');
     }
 
@@ -520,7 +520,7 @@ export const ensureUserRoomMembership = async (userId: string, roomId: string): 
 };
 
 export const getActiveMediaTracks = async (_roomId: string) => {
-  if (import.meta.env.DEV) {
+  if (import.meta.env.MODE === 'development') {
     console.debug('getActiveMediaTracks: Not implemented yet');
   }
   return [];

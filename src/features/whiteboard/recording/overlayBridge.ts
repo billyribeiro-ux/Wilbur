@@ -21,7 +21,7 @@ let isAttached = false;
 // Attach overlay to recording stream
 export function attachOverlay(
   sourceCanvas: HTMLCanvasElement,
-  config: OverlayBridgeConfig = {
+  _config: OverlayBridgeConfig = {
     includeEmojis: true,
     includeShapes: true,
     includeText: true,
@@ -44,7 +44,7 @@ export function attachOverlay(
   
   isAttached = true;
   
-  console.log('[OverlayBridge] Attached overlay for recording', config);
+  // Overlay attached for recording
   
   return overlayCanvas;
 }
@@ -59,7 +59,7 @@ export function detachOverlay() {
   
   isAttached = false;
   
-  console.log('[OverlayBridge] Detached overlay from recording');
+  // Overlay detached from recording
 }
 
 // Composite annotations onto overlay canvas
@@ -91,12 +91,12 @@ export function compositeAnnotations(
 // Render shape to overlay (simplified)
 function renderShapeToOverlay(
   _ctx: CanvasRenderingContext2D,
-  shape: WhiteboardShape,
+  _shape: WhiteboardShape,
   _viewport: ViewportState
 ) {
   // Implementation matches main canvas rendering
   // Excluded for brevity - uses same drawShape logic
-  console.log('[OverlayBridge] Rendering shape to overlay', shape.type);
+  // Rendering shape to overlay
 }
 
 // Render emoji to overlay

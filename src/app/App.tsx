@@ -15,7 +15,7 @@ import { FluentProvider, webDarkTheme, Spinner, type Theme } from '@fluentui/rea
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
 import { NotesView } from '../components/trading/NotesView';
 // WhiteboardOverlay imported only inside harness now; remove direct import to avoid unused variable warning
-// import { WhiteboardOverlay } from '../features/whiteboard/WhiteboardOverlay';
+// import { WhiteboardContainer } from '@/features/whiteboard/components/WhiteboardContainer';
 import { TestWhiteboardHarness } from '../features/whiteboard/TestWhiteboardHarness';
 import { TestTradingRoomShell } from '../components/trading/TestTradingRoomShell';
 import type { Session, User } from '@supabase/supabase-js';

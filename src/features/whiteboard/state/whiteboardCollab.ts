@@ -15,27 +15,27 @@ export function processIncomingEvent(event: WhiteboardEvent): void {
   
   switch (event.type) {
     case 'shape:add':
-      if ('shape' in event.payload) {
-        store.addShape(event.payload.shape);
+      if (event.payload && 'shape' in (event.payload as any)) {
+        store.addShape((event.payload as any).shape);
       }
       break;
       
     case 'shape:update':
-      if ('shape' in event.payload) {
-        const shape = event.payload.shape;
+      if (event.payload && 'shape' in (event.payload as any)) {
+        const shape = (event.payload as any).shape;
         store.updateShape(shape.id, shape);
       }
       break;
       
     case 'shape:delete':
-      if ('shapeId' in event.payload) {
-        store.deleteShape(event.payload.shapeId);
+      if (event.payload && 'shapeId' in (event.payload as any)) {
+        store.deleteShape((event.payload as any).shapeId);
       }
       break;
       
     case 'cursor:move':
-      if ('cursor' in event.payload) {
-        store.updateRemoteCursor(event.userId, event.payload.cursor);
+      if (event.payload && 'cursor' in (event.payload as any)) {
+        store.updateRemoteCursor(event.userId, (event.payload as any).cursor);
       }
       break;
       

@@ -241,7 +241,7 @@ export const useThemeStore = create<ThemeState>()(
           // Update existing theme
           const updated = await themeRepository.updateTheme(existing.id, {
             name: themeName,
-            theme_json: themeJson,
+            theme_json: themeJson as any,
             description: `Theme updated at ${new Date().toLocaleString()}`
           });
 
@@ -254,7 +254,7 @@ export const useThemeStore = create<ThemeState>()(
             userId,
             name: themeName,
             description: `Theme created at ${new Date().toLocaleString()}`,
-            themeJson
+            themeJson: themeJson as any
           });
 
           if (import.meta.env.DEV) {
@@ -288,7 +288,7 @@ export const useThemeStore = create<ThemeState>()(
         }
 
         // Apply theme from JSON
-        get().applyThemeByJson(theme.theme_json);
+        get().applyThemeByJson(theme.theme_json as Record<string, unknown>);
 
         // Update local state without overwriting brand
         set({ isLoading: false, themeName: theme.name });

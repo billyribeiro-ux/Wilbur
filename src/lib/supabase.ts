@@ -60,9 +60,9 @@ export const supabase: any = isE2ERoute
     persistSession: true,
     detectSessionInUrl: true,
     
-    // Use localStorage for session storage
-    storage: window.localStorage,
-    storageKey: `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`, // Dynamic storage key
+    // Do not use localStorage for session storage to prevent XSS
+    storage: undefined,
+    storageKey: undefined, // Remove dynamic storage key
     
     // Security settings
     flowType: 'pkce', // More secure auth flow

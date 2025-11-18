@@ -35,7 +35,7 @@ export function subscribeToRoomChat(roomId: string) {
         table: 'chatmessages',
         filter: `room_id=eq.${roomId}`
       },
-      (payload) => {
+      (payload: { eventType: string; new: ChatMessage; old: ChatMessage }) => {
         // Enterprise standard: Environment-based logging (dev only)
         if (import.meta.env.DEV) {
           console.debug('[subscribeToRoomChat] Received:', payload);
@@ -153,7 +153,7 @@ export function subscribeToRoomAlerts(roomId: string) {
         table: 'alerts',
         filter: `room_id=eq.${roomId}`  // FIXED: Changed from tenant_id to room_id
       },
-      (payload) => {
+      (payload: any) => {
         // Enterprise standard: Environment-based logging (dev only)
         if (import.meta.env.DEV) {
           const newAlert = payload.new as Alert | undefined;
@@ -193,7 +193,7 @@ export function subscribeToRoomAlerts(roomId: string) {
         }
       }
     )
-    .subscribe((status) => {
+    .subscribe((status: any) => {
       // Enterprise standard: Error handling for subscription failures
       if (status === 'SUBSCRIBED') {
         if (import.meta.env.DEV) {
@@ -250,7 +250,7 @@ export function subscribeToRoomTracks(roomId: string, _includeCleanup: boolean =
         table: 'mediatrack',
         filter: `room_id=eq.${roomId}`
       },
-      (payload) => {
+      (payload: any) => {
         // Enterprise standard: Environment-based logging (dev only)
         if (import.meta.env.DEV) {
           console.debug('[subscribeToRoomTracks] Received:', payload);

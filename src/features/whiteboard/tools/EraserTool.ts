@@ -11,7 +11,7 @@
 
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { worldToScreen } from '../utils/transform';
-import { pointerBatcher, viewportCache } from '../utils/performance';
+import { pointerBatcher, viewportCache, toViewportState } from '../../../utils/performance';
 import type { ViewportState, WhiteboardShape, WhiteboardPoint } from '../types';
 
 interface EraserToolState {
@@ -185,7 +185,7 @@ export function handleEraserPointerDown(
   toolState.isErasing = true;
 
   // Pre-cache viewport
-  viewportCache.get(canvasElement, viewport);
+  viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
 
   // Rebuild spatial index if dirty
   if (toolState.indexDirty || !toolState.spatialIndex) {
@@ -264,7 +264,7 @@ function eraseAtPoint(
   viewport: ViewportState
 ): void {
   // Use cached viewport - MASSIVE performance win
-  const { rect, viewportState } = viewportCache.get(canvasElement, viewport);
+  const { rect, viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
 
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;

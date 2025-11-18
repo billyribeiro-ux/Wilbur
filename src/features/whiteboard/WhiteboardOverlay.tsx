@@ -113,9 +113,9 @@ const COLORS = [
   '#2E9BFF', '#A855F7', '#10B981', '#F97316', '#EC4899',
 ];
 
-const STAMPS = [
-  '⭐', '✓', '✗', '❤️', '👍', '👎', '💡', '⚠️', '📌', '🎯', '🔥', '💯',
-];
+// const STAMPS = [
+//   '⭐', '✓', '✗', '❤️', '👍', '👎', '💡', '⚠️', '📌', '🎯', '🔥', '💯',
+// ];
 
 export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   isActive,
@@ -126,7 +126,7 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   userId,
   onClose,
   onEventEmit,
-  incomingEvents = [],
+  incomingEvents: _incomingEvents = [],
   onShapesChange,
   onToolChange,
   onHistoryChange,
@@ -184,11 +184,11 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
   // Expose state changes outward (test harness integration) — surgical & optional
   // ----------------------------------------------------------------------------
   useEffect(() => {
-    onShapesChange?.(shapes);
+    onShapesChange?.(shapes as any);
   }, [shapes, onShapesChange]);
 
   useEffect(() => {
-    onToolChange?.(tool);
+    onToolChange?.(tool as any);
   }, [tool, onToolChange]);
 
   useEffect(() => {
@@ -371,7 +371,7 @@ export const WhiteboardOverlay = memo(function WhiteboardOverlay({
       context.clearRect(0, 0, width, height);
       shapes.forEach((shape) => {
         try {
-          drawShape(context, shape, width, height);
+          drawShape(context, shape as any, width, height);
         } catch (shapeError) {
           console.error('[Whiteboard] Error drawing shape:', shapeError, shape);
         }

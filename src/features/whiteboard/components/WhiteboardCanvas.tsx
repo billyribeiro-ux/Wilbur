@@ -11,7 +11,6 @@ import { drawShape, clearCanvas } from '../utils/drawPrimitives';
 import { TextEditor } from './TextEditor';
 import { EmojiPicker } from './EmojiPicker';
 import { screenToWorld, worldToScreen, applyTransform, resetTransform } from '../utils/transform';
-import { debug } from '../utils/debug';
 import { measureText } from '../utils/textLayout';
 import type { WhiteboardPoint } from '../types';
 import { 
@@ -242,8 +241,6 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
       height,
     });
     
-    debug.emoji('Emoji tool clicked', { worldPos, screen: { x: e.clientX, y: e.clientY } });
-    
     // Show emoji picker at click position (screen space)
     setEmojiPickerPosition({ x: e.clientX, y: e.clientY });
     setPendingEmojiPosition(worldPos);
@@ -267,7 +264,6 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
         updatedAt: Date.now(),
       };
       
-      debug.emoji('Emoji placed', { emoji, position: pendingEmojiPosition });
       addShape(newShape);
     }
     
@@ -345,41 +341,24 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
       height,
     };
 
-    try {
-      if (import.meta.env.DEV && typeof window !== 'undefined') {
-        const w = window as Window & { __WB_DEBUG_TOOL__?: string; __WB_DEBUG_ON_DOWN__?: boolean };
-        w.__WB_DEBUG_TOOL__ = tool;
-        w.__WB_DEBUG_ON_DOWN__ = true;
-      }
-    } catch {}
-    
     if (tool === 'text') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'text'; } } catch {}
       handleTextClick(e);
       return;
     } else if (tool === 'highlighter') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'highlighter'; } } catch {}
       handleHighlighterPointerDown(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'eraser') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'eraser'; } } catch {}
       handleEraserPointerDown(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'rectangle') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'rectangle'; } } catch {}
       handleRectanglePointerDown(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'line') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'line'; } } catch {}
       handleLinePointerDown(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'arrow') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'arrow'; } } catch {}
       handleArrowPointerDown(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'stamp') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'stamp'; } } catch {}
       handleEmojiClick(e);
     } else if (tool === 'hand') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'hand'; } } catch {}
       handlePanStart(e);
     } else {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'generic'; } } catch {}
       handlePointerDown(e.nativeEvent);
     }
   }, [tool, viewport, width, height, handleTextClick, handleEmojiClick, handlePanStart, handlePointerDown]);
@@ -394,31 +373,21 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
       height,
     };
 
-    try { if (import.meta.env.DEV && typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_ON_MOVE__?: string }).__WB_DEBUG_ON_MOVE__ = tool; } } catch {}
-    
     if (tool === 'text') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'text-move'; } } catch {}
       handleTextPointerMove(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'highlighter') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'highlighter-move'; } } catch {}
       handleHighlighterPointerMove(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'eraser') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'eraser-move'; } } catch {}
       handleEraserPointerMove(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'rectangle') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'rectangle-move'; } } catch {}
       handleRectanglePointerMove(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'line') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'line-move'; } } catch {}
       handleLinePointerMove(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'arrow') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'arrow-move'; } } catch {}
       handleArrowPointerMove(e.nativeEvent, canvas, viewportState);
     } else if (tool === 'hand') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'hand-move'; } } catch {}
       handlePanMove(e);
     } else {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'generic-move'; } } catch {}
       handlePointerMove(e.nativeEvent);
     }
   }, [tool, viewport, width, height, handlePanMove, handlePointerMove]);
@@ -427,31 +396,21 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    try { if (import.meta.env.DEV && typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_ON_UP__?: string }).__WB_DEBUG_ON_UP__ = tool; } } catch {}
-    
     if (tool === 'text') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'text-up'; } } catch {}
       handleTextPointerUp(e.nativeEvent);
     } else if (tool === 'highlighter') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'highlighter-up'; } } catch {}
       handleHighlighterPointerUp(e.nativeEvent, canvas);
     } else if (tool === 'eraser') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'eraser-up'; } } catch {}
       handleEraserPointerUp(e.nativeEvent, canvas);
     } else if (tool === 'rectangle') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'rectangle-up'; } } catch {}
       handleRectanglePointerUp(e.nativeEvent, canvas);
     } else if (tool === 'line') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'line-up'; } } catch {}
       handleLinePointerUp(e.nativeEvent, canvas);
     } else if (tool === 'arrow') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'arrow-up'; } } catch {}
       handleArrowPointerUp(e.nativeEvent, canvas);
     } else if (tool === 'hand') {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'hand-up'; } } catch {}
       handlePanEnd(e);
     } else {
-      try { if (typeof window !== 'undefined') { (window as Window & { __WB_DEBUG_BRANCH__?: string }).__WB_DEBUG_BRANCH__ = 'generic-up'; } } catch {}
       handlePointerUp(e.nativeEvent);
     }
   }, [tool, handlePanEnd, handlePointerUp]);

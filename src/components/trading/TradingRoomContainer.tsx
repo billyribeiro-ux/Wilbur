@@ -39,7 +39,6 @@ import { loggerFactory } from '../infrastructure';
 
 import { TradingRoomLayout } from './TradingRoomLayout';
 import type { WhiteboardEvent } from '../../features/whiteboard/types';
-// import { clamp } from './resizeUtils'; // FIXED: Removed. This logic belongs in the state hook.
 import type { TradingRoomLayoutProps } from './types';
 import { useAudioVideoController } from './useAudioVideoController';
 import { useScreenShareController } from './useScreenShareController';
@@ -115,7 +114,6 @@ export function TradingRoomContainer({
     setMembership,
     setIsRefreshing,
     setIsWhiteboardActive,
-    // setAlertsHeight, // No longer needed, logic is in the hook
     setCameraEnabled,
     setCameraStream,
     setShowCameraWindow,
@@ -157,15 +155,8 @@ export function TradingRoomContainer({
   useEffect(() => {
     mountCountRef.current += 1;
     isMountedRef.current = true;
-    if (!import.meta.env.DEV) {
-      logger.info(`TradingRoomContainer mount #${mountCountRef.current}`);
-    }
     return () => {
       isMountedRef.current = false;
-      if (!import.meta.env.DEV) {
-        logger.info(`TradingRoomContainer unmount #${mountCountRef.current}`);
-      }
-      // Note: rAF/resize cleanups should be in the state hook
     };
   }, [logger]);
 
@@ -180,9 +171,6 @@ export function TradingRoomContainer({
 
     const initializeRoom = async () => {
       try {
-        if (!import.meta.env.DEV) {
-          logger.info('Initializing TradingRoom container');
-        }
         setIsRefreshing(true);
 
         // Ensure membership and get the role
@@ -231,28 +219,16 @@ export function TradingRoomContainer({
           if (cancelled) return;
           // LiveKit connect expects just the token; participant identity is embedded in the token
           await liveKitService.connect(token);
-          if (!import.meta.env.DEV) {
-            logger.info('LiveKit connected successfully');
-          }
         } catch {
           if (cancelled) return;
           addToast(
             'Real-time features unavailable. Chat and alerts will still work.'
           );
-          if (!import.meta.env.DEV) {
-            logger.info(
-              'LiveKit connection failed, continuing without real-time features'
-            );
-          }
         }
 
         if (cancelled) return;
         setRoomReady(true);
-        if (!import.meta.env.DEV) {
-          logger.info('TradingRoom container initialized successfully');
-        }
       } catch (error) {
-        if (cancelled) return;
         logger.error('Failed to initialize TradingRoom container:', error);
         addToast('Failed to initialize room');
       } finally {
@@ -265,7 +241,6 @@ export function TradingRoomContainer({
     // Cleanup
     return () => {
       cancelled = true;
-      logger.info('Cleaning up TradingRoom container');
 
       for (const u of unsubs) {
         try { u(); } catch {}
@@ -304,9 +279,7 @@ export function TradingRoomContainer({
         setLinkedinConnected(!!linkedin);
         setXConnected(!!x);
       } catch (error) {
-        if (!cancelled) {
-          logger.error('Failed to load integrations:', error);
-        }
+        logger.error('Failed to load integrations:', error);
       }
     };
 
@@ -540,7 +513,6 @@ export function TradingRoomContainer({
       if (error) throw error;
       
       // Add to banned_users table for audit trail and enforcement
-      // @ts-expect-error - Table not in current schema, will be added in migration
       await supabase.from('banned_users')
         .insert({
           user_id: userId,
@@ -577,7 +549,6 @@ export function TradingRoomContainer({
       if (error) throw error;
       
       // Log moderation action
-      // @ts-expect-error - Table not in current schema, will be added in migration
       await supabase.from('moderation_log')
         .insert({
           room_id: room.id,
@@ -605,7 +576,6 @@ export function TradingRoomContainer({
     
     try {
       // Microsoft Enterprise: Server-side report implementation
-      // @ts-expect-error - Table not in current schema, will be added in migration
       const { error } = await supabase.from('reported_content')
         .insert({
           content_type: 'alert',
@@ -676,8 +646,7 @@ export function TradingRoomContainer({
     // Microsoft Enterprise: Show user info modal
     try {
       // Fetch user profile data
-        // @ts-expect-error - Table not in current schema, will be added in migration
-        const { data: profile, error } = await supabase.from('profiles')
+      const { data: profile, error } = await supabase.from('profiles')
         .select('*')
         .eq('id', userId)
         .single() as { data: { last_seen?: string; email?: string; status?: string; is_online?: boolean } | null; error: Error | null };
@@ -714,7 +683,7 @@ export function TradingRoomContainer({
                           <i class="fas fa-file-upload"></i> Upload Picture
                         </button>
                       </div>
-                    </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -856,7 +825,6 @@ export function TradingRoomContainer({
     
     try {
       // Create or get existing private chat room
-      // @ts-ignore - Table will be added in migration
       const { data: existingChat, error: fetchError } = await supabase.from('private_chats')
         .select('*')
         .or(`and(user1_id.eq.${user.id},user2_id.eq.${userId}),and(user1_id.eq.${userId},user2_id.eq.${user.id})`)
@@ -866,7 +834,6 @@ export function TradingRoomContainer({
       
       if (!existingChat && !fetchError) {
         // Create new private chat
-        // @ts-ignore - Table will be added in migration
         const { data: newChat, error: createError } = await supabase.from('private_chats')
           .insert({
             user1_id: user.id,
@@ -912,7 +879,7 @@ export function TradingRoomContainer({
       
       if (members && members.length > 0) {
         // Create notifications for all members
-        const notifications = members.map(member => ({
+        const notifications = members.map((member: { user_id: string }) => ({
           user_id: member.user_id,
           type: 'broadcast_alert',
           message: 'New alert has been broadcasted to all members',
@@ -921,8 +888,7 @@ export function TradingRoomContainer({
           alert_id: alertId
         }));
         
-        // @ts-expect-error - Table not in current schema, will be added in migration
-      await supabase.from('notifications')
+        await supabase.from('notifications')
           .insert(notifications);
       }
       

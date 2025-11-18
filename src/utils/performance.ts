@@ -1,11 +1,10 @@
-NEW FILE: src/features/whiteboard/utils/performance.ts
 // ============================================================================
 // PERFORMANCE UTILITIES - RAF Batching & Viewport Caching
 // ============================================================================
 // Eliminates getBoundingClientRect() spam and batches pointer updates
 // ============================================================================
 
-import type { ViewportTransform } from '../types';
+import type { ViewportState } from '../features/whiteboard/types';
 
 // =============================================================================
 // VIEWPORT CACHE - Eliminates getBoundingClientRect() spam
@@ -13,7 +12,7 @@ import type { ViewportTransform } from '../types';
 
 interface CachedViewport {
   rect: DOMRect;
-  viewportState: ViewportTransform;
+  viewportState: ViewportState;
   timestamp: number;
 }
 
@@ -27,8 +26,8 @@ class ViewportCache {
    */
   get(
     element: HTMLElement,
-    viewport: ViewportTransform
-  ): { rect: DOMRect; viewportState: ViewportTransform } {
+    viewport: ViewportState
+  ): { rect: DOMRect; viewportState: ViewportState } {
     const cached = this.cache.get(element);
     const now = performance.now();
 
@@ -42,7 +41,7 @@ class ViewportCache {
 
     // Compute fresh
     const rect = element.getBoundingClientRect();
-    const viewportState: ViewportTransform = {
+    const viewportState: ViewportState = {
       zoom: viewport.zoom,
       panX: viewport.panX,
       panY: viewport.panY,
@@ -115,6 +114,83 @@ class PointerBatcher {
       this.pendingCallback = null;
     }
   }
+}
+
+// =============================================================================
+// VIEWPORT HELPERS
+// =============================================================================
+
+/**
+ * Convert ViewportTransform to ViewportState by adding CSS dimensions from element
+ * This respects DPR as SSOT - dimensions are in CSS pixels, not device pixels
+ */
+export function toViewportState(
+  viewport: { panX: number; panY: number; zoom: number },
+  element: HTMLElement
+): ViewportState {
+  const rect = element.getBoundingClientRect();
+  return {
+    ...viewport,
+    width: rect.width,   // CSS pixels
+    height: rect.height  // CSS pixels
+  };
+}
+
+// =============================================================================
+// PATH SIMPLIFICATION UTILITIES
+// =============================================================================
+
+/**
+ * simplifyPoints - Ramer-Douglas-Peucker algorithm for path simplification
+ */
+export function simplifyPoints(points: Array<{ x: number; y: number }>, tolerance: number = 1.5): Array<{ x: number; y: number }> {
+  if (points.length < 3) return points;
+  const sqTolerance = tolerance * tolerance;
+
+  function getSqDist(p1: { x: number; y: number }, p2: { x: number; y: number }) {
+    const dx = p1.x - p2.x, dy = p1.y - p2.y;
+    return dx * dx + dy * dy;
+  }
+
+  function simplifyDPStep(pts: Array<{ x: number; y: number }>, first: number, last: number, simplified: Array<{ x: number; y: number }>) {
+    let maxDist = sqTolerance, index = -1;
+    for (let i = first + 1; i < last; i++) {
+      const dist = getSqDist(pts[i], pts[first]) + getSqDist(pts[i], pts[last]);
+      if (dist > maxDist) {
+        index = i;
+        maxDist = dist;
+      }
+    }
+    if (index !== -1) {
+      simplifyDPStep(pts, first, index, simplified);
+      simplifyDPStep(pts, index, last, simplified);
+    } else {
+      simplified.push(pts[first]);
+    }
+  }
+
+  const simplified: Array<{ x: number; y: number }> = [];
+  simplifyDPStep(points, 0, points.length - 1, simplified);
+  simplified.push(points[points.length - 1]);
+  return simplified;
+}
+
+/**
+ * simplifyPointsByDistance - Reduces points by minimum distance threshold
+ */
+export function simplifyPointsByDistance(points: Array<{ x: number; y: number }>, minDistance: number = 1.5): Array<{ x: number; y: number }> {
+  if (points.length < 2) return points;
+  const result = [points[0]];
+  let prev = points[0];
+  for (let i = 1; i < points.length; i++) {
+    const dx = points[i].x - prev.x;
+    const dy = points[i].y - prev.y;
+    if (dx * dx + dy * dy >= minDistance * minDistance) {
+      result.push(points[i]);
+      prev = points[i];
+    }
+  }
+  return result;
 }
 
 // =============================================================================

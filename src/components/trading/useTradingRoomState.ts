@@ -599,8 +599,7 @@ export function useTradingRoomState(): UseTradingRoomStateReturn {
     setMessages,
     setAlerts,
     setMembership,
-    // @ts-expect-error - tracks type is complex, cast is safe here
-    setTracks: (tracks: unknown[]) => setTracks(tracks),
+    setTracks: setTracks as (tracks: unknown[]) => void,
     setRecording,
     setMicEnabled,
     setRoomReady,

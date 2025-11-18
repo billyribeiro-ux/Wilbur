@@ -62,7 +62,7 @@ export function PrivateChatModal({
           table: 'private_messages',
           filter: `chat_id=eq.${chatId}`
         },
-        (payload) => {
+        (payload: { new: PrivateMessage }) => {
           setMessages(prev => [...prev, payload.new as PrivateMessage]);
         }
       )

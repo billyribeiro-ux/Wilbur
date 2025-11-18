@@ -232,10 +232,5 @@ function commitStroke(): void {
   );
   useWhiteboardStore.setState({ shapes: newShapes });
 
-  console.log(
-    `[HighlighterTool] Point reduction: ${toolState.accumulatedPoints.length} → ${simplified.length} ` +
-    `(${Math.round((1 - simplified.length / toolState.accumulatedPoints.length) * 100)}% reduction)`
-  );
-
   store.saveHistory('add-highlighter');
 }

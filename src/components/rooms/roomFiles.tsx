@@ -58,7 +58,7 @@ export async function getRoomFiles(roomId: string): Promise<RoomFile[]> {
       .order("created_at", { ascending: false });
 
     if (error) throw new RoomFileError("Failed to fetch files", { error });
-    return (data || []).map((item) => {
+    return (data || []).map((item: any) => {
       const anyItem = item as Record<string, unknown>;
       return {
         ...item,

@@ -11,7 +11,7 @@
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { screenToWorld } from '../utils/transform';
 import { hitTestText } from '../utils/hitTest';
-import { pointerBatcher, viewportCache } from '../utils/performance;
+import { pointerBatcher, viewportCache, toViewportState } from '../../../utils/performance';
 import type {
   TextAnnotation,
   WhiteboardPoint,
@@ -75,7 +75,8 @@ export function activateTextTool(canvasElement?: HTMLElement) {
   // Pre-cache viewport if canvas element provided
   if (canvasElement) {
     const store = useWhiteboardStore.getState();
-    viewportCache.get(canvasElement, store.viewport);
+    // Convert ViewportTransform to ViewportState (respecting DPR as SSOT)
+    viewportCache.get(canvasElement, toViewportState(store.viewport, canvasElement));
   }
 }
 
