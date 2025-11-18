@@ -7,7 +7,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { usePointerDrawing } from '../hooks/usePointerDrawing';
-import { drawShape, clearCanvas } from '../utils/drawPrimitives';
+import { drawShape } from '../utils/drawPrimitives';
 import { TextEditor } from './TextEditor';
 import { EmojiPicker } from './EmojiPicker';
 import { screenToWorld, worldToScreen, applyTransform, resetTransform } from '../utils/transform';
@@ -91,18 +91,18 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas in device pixels (backing store size)
-    clearCanvas(ctx, canvas.width, canvas.height);
+    // Clear canvas to white background (device pixels)
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
 
     // Viewport width/height must be CSS pixels; DPR is handled inside applyTransform
     const viewportState = { ...viewport, width, height };
 
     // Set DPR + viewport transform
     applyTransform(ctx, viewportState);
-
-    // Draw white background in world space (covers full canvas)
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 1, 1);
 
     // Draw all shapes in world space
     shapes.forEach((shape: import('../types').WhiteboardShape) => {
