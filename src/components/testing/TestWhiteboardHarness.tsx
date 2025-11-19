@@ -3,7 +3,7 @@
  * Provides a deterministic whiteboard environment for Playwright tests
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { WhiteboardCanvasPro } from '../../features/whiteboard/components/WhiteboardCanvasPro';
 import { WhiteboardToolbar } from '../../features/whiteboard/components/WhiteboardToolbar';
 import { useWhiteboardStore } from '../../features/whiteboard/state/whiteboardStore';
@@ -23,6 +23,10 @@ export const TestWhiteboardHarness: React.FC = () => {
     history,
     historyIndex
   } = useWhiteboardStore();
+
+  // State to control emoji picker visibility
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState({ x: 100, y: 100 });
 
   // Compute canUndo and canRedo from history state
   const canUndo = historyIndex > 0;
@@ -75,10 +79,19 @@ export const TestWhiteboardHarness: React.FC = () => {
     };
   }, []);
 
-  // Update debug tool when it changes
+  // Update debug tool when it changes and handle emoji tool
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__WB_DEBUG_TOOL__ = tool;
+    }
+    
+    // Show emoji picker when emoji tool is selected
+    if (tool === 'emoji') {
+      // Position the picker in the center of the viewport
+      const centerX = window.innerWidth / 2 - 160; // 160 is half the picker width
+      const centerY = window.innerHeight / 2 - 200; // Approximate height adjustment
+      setEmojiPickerPosition({ x: centerX, y: centerY });
+      setShowEmojiPicker(true);
     }
   }, [tool]);
 
@@ -123,18 +136,42 @@ export const TestWhiteboardHarness: React.FC = () => {
       {/* Text Layer for text editing */}
       <TextLayer />
 
-      {/* Emoji Picker */}
-      <EmojiPicker 
-        onSelect={(emoji) => {
-          // Handle emoji selection
-          console.log('Emoji selected:', emoji);
-        }}
-        onClose={() => {
-          // Handle picker close
-          console.log('Emoji picker closed');
-        }}
-        position={{ x: 100, y: 100 }}
-      />
+      {/* Emoji Picker - Only show when needed */}
+      {showEmojiPicker && (
+        <EmojiPicker 
+          onSelect={(emoji) => {
+            // Handle emoji selection
+            console.log('Emoji selected:', emoji);
+            // Add emoji as a text shape
+            const emojiShape = {
+              id: `emoji-${Date.now()}`,
+              type: 'text' as const,
+              content: emoji,
+              x: emojiPickerPosition.x + 160, // Place near picker
+              y: emojiPickerPosition.y + 100,
+              color: '#000000',
+              opacity: 1,
+              fontSize: 48,
+              fontFamily: 'Apple Color Emoji, Segoe UI Emoji, sans-serif',
+              fontWeight: 400,
+              fontStyle: 'normal' as const,
+              scale: 1,
+              rotation: 0,
+              locked: false,
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            };
+            _addShape(emojiShape as any);
+            setShowEmojiPicker(false);
+          }}
+          onClose={() => {
+            // Handle picker close
+            console.log('Emoji picker closed');
+            setShowEmojiPicker(false);
+          }}
+          position={emojiPickerPosition}
+        />
+      )}
 
       {/* Whiteboard Toolbar */}
       <div className="absolute top-4 left-4 z-50">
