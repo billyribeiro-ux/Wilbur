@@ -14,12 +14,12 @@ export const TestWhiteboardHarness: React.FC = () => {
   const { 
     shapes, 
     tool,
-    setTool,
-    addShape,
-    updateShape,
-    deleteShape,
-    undo,
-    redo,
+    setTool: _setTool,
+    addShape: _addShape,
+    updateShape: _updateShape,
+    deleteShape: _deleteShape,
+    undo: _undo,
+    redo: _redo,
     history,
     historyIndex
   } = useWhiteboardStore();

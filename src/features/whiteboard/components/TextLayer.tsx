@@ -33,6 +33,7 @@ export const TextLayer: React.FC = () => {
       document.addEventListener('click', handleClick);
       return () => document.removeEventListener('click', handleClick);
     }
+    return undefined;
   }, [tool]);
 
   // Focus textarea when editing starts

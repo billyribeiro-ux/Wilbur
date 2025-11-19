@@ -23,7 +23,6 @@ import type {
   ViewportTransform,
   RemoteCursor,
   WhiteboardConfig,
-  StrokeMetadata,
 } from '../types';
 import { DEFAULT_WHITEBOARD_CONFIG } from '../types';
 
@@ -988,7 +987,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         },
         
         getVisibleShapes: () => {
-          const { shapes, viewport } = get();
+          const { shapes } = get();
           const visible: WhiteboardShape[] = [];
           
           // Simple visibility check (can be optimized with spatial indexing)

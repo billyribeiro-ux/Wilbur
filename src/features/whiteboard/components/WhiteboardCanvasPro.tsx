@@ -88,25 +88,42 @@ export function WhiteboardCanvasPro() {
     };
   }, []);
 
-  // Redraw canvas when shapes change
+  // Redraw canvas when shapes change (but not during drawing)
   useEffect(() => {
+    // Skip redraw if actively drawing to prevent flickering
+    if (drawingState.isDrawing && (tool === 'pen' || tool === 'highlighter')) {
+      return;
+    }
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
-    const rect = canvas.getBoundingClientRect();
-    ctx.clearRect(0, 0, rect.width, rect.height);
+    // Save the current transformation matrix
+    ctx.save();
     
-    // Set white background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, rect.width, rect.height);
+    // Clear canvas with proper dimensions
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    ctx.clearRect(0, 0, rect.width * dpr, rect.height * dpr);
+    
+    // Reset to default composite operation first
+    ctx.globalCompositeOperation = 'source-over';
+    
+    // Set white background ONLY if no shapes exist
+    if (shapes.size === 0) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+    }
 
     // Draw all shapes
     shapes.forEach((shape) => {
       ctx.save();
+      
+      // Reset composite operation for each shape
+      ctx.globalCompositeOperation = 'source-over';
       
       switch (shape.type) {
         case 'pen': {
@@ -270,118 +287,350 @@ export function WhiteboardCanvasPro() {
       
       ctx.restore();
     });
+    
+    // Restore the transformation matrix
+    ctx.restore();
+  }, [shapes, drawingState.isDrawing, tool]); // Include drawing state to skip during active drawing
 
-    // Draw current drawing preview
-    if (drawingState.isDrawing && drawingState.currentPath.length > 0) {
+  // Incremental drawing for pen and highlighter tools - optimized for performance
+  const [lastDrawnIndex, setLastDrawnIndex] = useState(0);
+  
+  useEffect(() => {
+    if (!drawingState.isDrawing || drawingState.currentPath.length < 2) {
+      setLastDrawnIndex(0);
+      return;
+    }
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Only draw new segments for pen/highlighter
+    if (tool === 'pen' || tool === 'highlighter') {
       ctx.save();
       
+      // Ensure we're drawing on top, not replacing
+      ctx.globalCompositeOperation = tool === 'highlighter' ? 'multiply' : 'source-over';
+      ctx.globalAlpha = tool === 'highlighter' ? 0.4 : opacity;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = tool === 'highlighter' ? size * 4 : size;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      // Draw only the new segments
+      if (lastDrawnIndex < drawingState.currentPath.length - 1) {
+        ctx.beginPath();
+        const startIdx = Math.max(0, lastDrawnIndex);
+        ctx.moveTo(
+          drawingState.currentPath[startIdx].x,
+          drawingState.currentPath[startIdx].y
+        );
+        
+        for (let i = startIdx + 1; i < drawingState.currentPath.length; i++) {
+          ctx.lineTo(drawingState.currentPath[i].x, drawingState.currentPath[i].y);
+        }
+        ctx.stroke();
+        
+        setLastDrawnIndex(drawingState.currentPath.length - 1);
+      }
+      
+      ctx.restore();
+    }
+  }, [drawingState.currentPath, drawingState.isDrawing, tool, color, size, opacity, lastDrawnIndex]);
+  
+  // Preview for shape tools (rectangle, circle, arrow, line)
+  useEffect(() => {
+    if (!drawingState.isDrawing || !drawingState.startPoint) return;
+    if (tool === 'pen' || tool === 'highlighter' || tool === 'eraser') return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // For shape tools, we need to redraw to show preview
+    // First redraw all shapes
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Clear with proper dimensions
+    ctx.clearRect(0, 0, rect.width * dpr, rect.height * dpr);
+    
+    // Only set background if no shapes
+    if (shapes.size === 0) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+    }
+    
+    // Redraw existing shapes
+    shapes.forEach((shape) => {
+      drawShape(ctx, shape);
+    });
+    
+    // Draw preview shape
+    if (drawingState.currentPath.length > 0) {
+      const current = drawingState.currentPath[drawingState.currentPath.length - 1];
+      
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = size;
+      ctx.lineCap = 'round';
+      
       switch (tool) {
-        case 'pen':
-        case 'highlighter':
-          ctx.globalAlpha = tool === 'highlighter' ? 0.4 : opacity;
-          ctx.strokeStyle = tool === 'highlighter' ? color : color;  // Use selected color for both
-          ctx.lineWidth = tool === 'highlighter' ? size * 4 : size;  // Thicker for highlighter
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          
-          if (tool === 'highlighter') {
-            ctx.globalCompositeOperation = 'multiply';
-          }
-          
-          ctx.beginPath();
-          ctx.moveTo(drawingState.currentPath[0].x, drawingState.currentPath[0].y);
-          for (let i = 1; i < drawingState.currentPath.length; i++) {
-            ctx.lineTo(drawingState.currentPath[i].x, drawingState.currentPath[i].y);
-          }
-          ctx.stroke();
-          break;
-          
         case 'rectangle':
-          if (drawingState.startPoint) {
-            const current = drawingState.currentPath[drawingState.currentPath.length - 1];
-            const width = current.x - drawingState.startPoint.x;
-            const height = current.y - drawingState.startPoint.y;
-            
-            ctx.globalAlpha = opacity;
-            ctx.strokeStyle = color;
-            ctx.lineWidth = size;
-            ctx.strokeRect(drawingState.startPoint.x, drawingState.startPoint.y, width, height);
-          }
+          const width = current.x - drawingState.startPoint.x;
+          const height = current.y - drawingState.startPoint.y;
+          ctx.strokeRect(drawingState.startPoint.x, drawingState.startPoint.y, width, height);
           break;
           
         case 'circle':
-          if (drawingState.startPoint) {
-            const current = drawingState.currentPath[drawingState.currentPath.length - 1];
-            const radius = Math.sqrt(
-              Math.pow(current.x - drawingState.startPoint.x, 2) + 
-              Math.pow(current.y - drawingState.startPoint.y, 2)
-            );
-            
-            ctx.globalAlpha = opacity;
-            ctx.strokeStyle = color;
-            ctx.lineWidth = size;
-            
-            ctx.beginPath();
-            ctx.arc(drawingState.startPoint.x, drawingState.startPoint.y, radius, 0, 2 * Math.PI);
-            ctx.stroke();
-          }
+          const radius = Math.sqrt(
+            Math.pow(current.x - drawingState.startPoint.x, 2) + 
+            Math.pow(current.y - drawingState.startPoint.y, 2)
+          );
+          ctx.beginPath();
+          ctx.arc(drawingState.startPoint.x, drawingState.startPoint.y, radius, 0, 2 * Math.PI);
+          ctx.stroke();
           break;
           
         case 'arrow':
         case 'line':
-          if (drawingState.startPoint) {
-            const current = drawingState.currentPath[drawingState.currentPath.length - 1];
+          ctx.beginPath();
+          ctx.moveTo(drawingState.startPoint.x, drawingState.startPoint.y);
+          ctx.lineTo(current.x, current.y);
+          ctx.stroke();
+          
+          if (tool === 'arrow') {
+            const angle = Math.atan2(
+              current.y - drawingState.startPoint.y,
+              current.x - drawingState.startPoint.x
+            );
+            const headLength = size * 5;
             
-            ctx.globalAlpha = opacity;
-            ctx.strokeStyle = color;
-            ctx.lineWidth = size;
-            ctx.lineCap = 'round';
-            
+            ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.moveTo(drawingState.startPoint.x, drawingState.startPoint.y);
-            ctx.lineTo(current.x, current.y);
-            ctx.stroke();
-            
-            if (tool === 'arrow') {
-              const angle = Math.atan2(
-                current.y - drawingState.startPoint.y,
-                current.x - drawingState.startPoint.x
-              );
-              const headLength = size * 5;
-              
-              ctx.fillStyle = color;
-              ctx.beginPath();
-              ctx.moveTo(current.x, current.y);
-              ctx.lineTo(
-                current.x - headLength * Math.cos(angle - Math.PI / 6),
-                current.y - headLength * Math.sin(angle - Math.PI / 6)
-              );
-              ctx.lineTo(
-                current.x - headLength * Math.cos(angle + Math.PI / 6),
-                current.y - headLength * Math.sin(angle + Math.PI / 6)
-              );
-              ctx.closePath();
-              ctx.fill();
-            }
+            ctx.moveTo(current.x, current.y);
+            ctx.lineTo(
+              current.x - headLength * Math.cos(angle - Math.PI / 6),
+              current.y - headLength * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.lineTo(
+              current.x - headLength * Math.cos(angle + Math.PI / 6),
+              current.y - headLength * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.closePath();
+            ctx.fill();
           }
           break;
       }
       
       ctx.restore();
     }
-
-    // Draw eraser cursor
-    if (tool === 'eraser' && eraserPosition) {
-      ctx.save();
-      ctx.strokeStyle = '#666666';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      ctx.beginPath();
-      ctx.arc(eraserPosition.x, eraserPosition.y, eraserSize, 0, 2 * Math.PI);
-      ctx.stroke();
-      ctx.restore();
+  }, [drawingState, tool, color, size, opacity, shapes]);
+  
+  // Helper function to draw a shape
+  const drawShape = (ctx: CanvasRenderingContext2D, shape: WhiteboardShape) => {
+    ctx.save();
+    
+    switch (shape.type) {
+      case 'pen': {
+        const penShape = shape as PenAnnotation;
+        if (penShape.points && penShape.points.length > 1) {
+          ctx.globalAlpha = penShape.opacity;
+          ctx.strokeStyle = penShape.color;
+          ctx.lineWidth = penShape.thickness;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          
+          ctx.beginPath();
+          ctx.moveTo(penShape.points[0].x, penShape.points[0].y);
+          for (let i = 1; i < penShape.points.length; i++) {
+            ctx.lineTo(penShape.points[i].x, penShape.points[i].y);
+          }
+          ctx.stroke();
+        }
+        break;
+      }
+        
+      case 'highlighter': {
+        const highlighterShape = shape as HighlighterAnnotation;
+        if (highlighterShape.points && highlighterShape.points.length > 1) {
+          ctx.globalAlpha = 0.3;
+          ctx.globalCompositeOperation = 'multiply';
+          
+          const gradientColor = highlighterShape.colorGradient?.stops?.[0]?.color || '#FFFF00';
+          ctx.strokeStyle = gradientColor;
+          ctx.lineWidth = highlighterShape.thickness;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          
+          ctx.beginPath();
+          ctx.moveTo(highlighterShape.points[0].x, highlighterShape.points[0].y);
+          for (let i = 1; i < highlighterShape.points.length; i++) {
+            ctx.lineTo(highlighterShape.points[i].x, highlighterShape.points[i].y);
+          }
+          ctx.stroke();
+        }
+        break;
+      }
+        
+      case 'rectangle':
+      case 'circle':
+      case 'arrow':
+      case 'line': {
+        const shapeObj = shape as ShapeObject;
+        
+        if (shape.type === 'rectangle' && shapeObj.points && shapeObj.points.length >= 2) {
+          const start = shapeObj.points[0];
+          const end = shapeObj.points[shapeObj.points.length - 1];
+          const width = end.x - start.x;
+          const height = end.y - start.y;
+          
+          ctx.globalAlpha = shapeObj.opacity;
+          
+          if (shapeObj.fill) {
+            ctx.fillStyle = shapeObj.fill;
+            ctx.fillRect(start.x, start.y, width, height);
+          }
+          
+          if (shapeObj.stroke) {
+            ctx.strokeStyle = shapeObj.stroke;
+            ctx.lineWidth = shapeObj.strokeWidth || 2;
+            ctx.strokeRect(start.x, start.y, width, height);
+          }
+        } else if (shape.type === 'circle' && shapeObj.points && shapeObj.points.length >= 2) {
+          const center = shapeObj.points[0];
+          const edge = shapeObj.points[shapeObj.points.length - 1];
+          const radius = Math.sqrt(
+            Math.pow(edge.x - center.x, 2) + 
+            Math.pow(edge.y - center.y, 2)
+          );
+          
+          ctx.globalAlpha = shapeObj.opacity;
+          
+          ctx.beginPath();
+          ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
+          
+          if (shapeObj.fill) {
+            ctx.fillStyle = shapeObj.fill;
+            ctx.fill();
+          }
+          
+          if (shapeObj.stroke) {
+            ctx.strokeStyle = shapeObj.stroke;
+            ctx.lineWidth = shapeObj.strokeWidth || 2;
+            ctx.stroke();
+          }
+        } else if (shape.type === 'arrow' && shapeObj.points && shapeObj.points.length >= 2) {
+          const start = shapeObj.points[0];
+          const end = shapeObj.points[shapeObj.points.length - 1];
+          
+          ctx.globalAlpha = shapeObj.opacity;
+          const strokeColor = shapeObj.stroke || '#000000';
+          ctx.strokeStyle = strokeColor;
+          ctx.fillStyle = strokeColor;
+          ctx.lineWidth = shapeObj.strokeWidth || 2;
+          ctx.lineCap = 'round';
+          
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(end.x, end.y);
+          ctx.stroke();
+          
+          const angle = Math.atan2(end.y - start.y, end.x - start.x);
+          const headLength = (shapeObj.strokeWidth || 2) * 5;
+          
+          ctx.beginPath();
+          ctx.moveTo(end.x, end.y);
+          ctx.lineTo(
+            end.x - headLength * Math.cos(angle - Math.PI / 6),
+            end.y - headLength * Math.sin(angle - Math.PI / 6)
+          );
+          ctx.lineTo(
+            end.x - headLength * Math.cos(angle + Math.PI / 6),
+            end.y - headLength * Math.sin(angle + Math.PI / 6)
+          );
+          ctx.closePath();
+          ctx.fill();
+        } else if (shape.type === 'line' && shapeObj.points && shapeObj.points.length >= 2) {
+          const start = shapeObj.points[0];
+          const end = shapeObj.points[shapeObj.points.length - 1];
+          
+          ctx.globalAlpha = shapeObj.opacity;
+          ctx.strokeStyle = shapeObj.stroke || '#000000';
+          ctx.lineWidth = shapeObj.strokeWidth || 2;
+          ctx.lineCap = 'round';
+          
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(end.x, end.y);
+          ctx.stroke();
+        }
+        break;
+      }
+        
+      case 'text': {
+        const textShape = shape as TextShape;
+        const pos = { x: textShape.x, y: textShape.y };
+        
+        ctx.globalAlpha = textShape.opacity;
+        ctx.fillStyle = textShape.color;
+        ctx.font = `${textShape.fontStyle === 'italic' ? 'italic ' : ''}${textShape.fontWeight || 400} ${textShape.fontSize}px ${textShape.fontFamily}`;
+        ctx.textBaseline = 'top';
+        
+        const lines = textShape.content.split('\n');
+        lines.forEach((line: string, i: number) => {
+          ctx.fillText(line, pos.x, pos.y + i * (textShape.fontSize * 1.2));
+        });
+        break;
+      }
     }
-  }, [shapes, drawingState, tool, color, size, opacity, eraserPosition, eraserSize]);
+    
+    ctx.restore();
+  };
+  
+  // Draw eraser cursor
+  useEffect(() => {
+    if (tool !== 'eraser' || !eraserPosition) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Redraw canvas with eraser cursor
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Clear with proper dimensions
+    ctx.clearRect(0, 0, rect.width * dpr, rect.height * dpr);
+    
+    // Only set background if no shapes
+    if (shapes.size === 0) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+    }
+    
+    // Redraw all shapes
+    shapes.forEach((shape) => {
+      drawShape(ctx, shape);
+    });
+    
+    // Draw eraser cursor
+    ctx.save();
+    ctx.strokeStyle = '#666666';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.arc(eraserPosition.x, eraserPosition.y, eraserSize, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.restore();
+  }, [tool, eraserPosition, eraserSize, shapes]);
 
   // Get mouse position relative to canvas
   const getMousePos = useCallback((e: React.MouseEvent | React.TouchEvent): Point => {
@@ -556,9 +805,13 @@ export function WhiteboardCanvasPro() {
     
     if (!drawingState.isDrawing) return;
     
+    // Reset last drawn index when finishing a stroke
+    setLastDrawnIndex(0);
+    
     if (tool === 'pen') {
       if (drawingState.currentPath.length < 2) {
         setDrawingState({ isDrawing: false, currentPath: [], startPoint: null });
+        setLastDrawnIndex(0);
         return;
       }
       
@@ -581,6 +834,7 @@ export function WhiteboardCanvasPro() {
     } else if (tool === 'highlighter') {
       if (drawingState.currentPath.length < 2) {
         setDrawingState({ isDrawing: false, currentPath: [], startPoint: null });
+        setLastDrawnIndex(0);
         return;
       }
       
@@ -624,6 +878,7 @@ export function WhiteboardCanvasPro() {
     }
     
     setDrawingState({ isDrawing: false, currentPath: [], startPoint: null });
+    setLastDrawnIndex(0);
   }, [drawingState, tool, color, size, opacity, addShape, isErasing]);
 
   // Handle mouse leave
