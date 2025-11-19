@@ -30,6 +30,12 @@ interface PenToolState {
   // Performance optimizations
   accumulatedPoints: WhiteboardPoint[]; // Local buffer - no store spam
   lastUpdateTime: number; // Track RAF timing
+  
+  // Velocity tracking for metadata
+  lastWorldPosition: WhiteboardPoint | null;
+  velocityHistory: number[];
+  avgVelocity: number;
+  maxVelocity: number;
 }
 
 const toolState: PenToolState = {
@@ -39,6 +45,10 @@ const toolState: PenToolState = {
   canvasElement: null,
   accumulatedPoints: [],
   lastUpdateTime: 0,
+  lastWorldPosition: null,
+  velocityHistory: [],
+  avgVelocity: 0,
+  maxVelocity: 0,
 };
 
 // Stable ID generator
@@ -126,16 +136,24 @@ export function handlePenPointerDown(
   // Initialize local accumulation buffer
   toolState.accumulatedPoints = [startWorld];
   toolState.lastUpdateTime = performance.now();
+  
+  // Reset velocity tracking
+  toolState.lastWorldPosition = startWorld;
+  toolState.velocityHistory = [];
+  toolState.avgVelocity = 0;
+  toolState.maxVelocity = 0;
 
   const newShape: WhiteboardAnnotation = {
     id,
     type: 'pen',
     color,
-    size,
+    thickness: size,
     opacity,
-    lineStyle: 'solid',
     points: [startWorld], // Initial point only
-    timestamp: Date.now(),
+    x: startWorld.x,
+    y: startWorld.y,
+    scale: 1,
+    rotation: 0,
     locked: false,
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -169,6 +187,31 @@ export function handlePenPointerMove(
 
   const { x, y } = getPointerInCanvas(e, canvasElement);
   const worldPoint = screenToWorld(x, y, viewportState);
+
+  // Calculate velocity for metadata
+  const currentTime = performance.now();
+  if (toolState.lastWorldPosition && toolState.lastUpdateTime > 0) {
+    const dx = worldPoint.x - toolState.lastWorldPosition.x;
+    const dy = worldPoint.y - toolState.lastWorldPosition.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const timeDelta = (currentTime - toolState.lastUpdateTime) / 1000; // Convert to seconds
+    
+    if (timeDelta > 0) {
+      const velocity = distance / timeDelta;
+      toolState.velocityHistory.push(velocity);
+      
+      // Keep only last 10 samples for rolling average
+      if (toolState.velocityHistory.length > 10) {
+        toolState.velocityHistory.shift();
+      }
+      
+      // Update metrics
+      toolState.avgVelocity = toolState.velocityHistory.reduce((a, b) => a + b, 0) / toolState.velocityHistory.length;
+      toolState.maxVelocity = Math.max(toolState.maxVelocity, velocity);
+    }
+  }
+  
+  toolState.lastWorldPosition = worldPoint;
 
   // Add to local buffer (no store update yet!)
   toolState.accumulatedPoints.push(worldPoint);
@@ -229,15 +272,30 @@ export function handlePenPointerUp(
         0.002 // Epsilon tolerance - smaller = more accurate
       );
 
-      // Final update with simplified points
+      // Calculate simplification ratio
+      const simplificationRatio = 1 - (simplified.length / toolState.accumulatedPoints.length);
+
+      // Final update with simplified points and metadata
       store.updateShape(toolState.currentShapeId, {
         points: simplified,
         updatedAt: Date.now(),
+        metadata: {
+          dpr: window.devicePixelRatio || 1,
+          deviceType: 'fine', // Pen tool typically uses mouse/stylus
+          pointerType: e.pointerType || 'mouse',
+          simplificationRatio,
+          originalPointCount: toolState.accumulatedPoints.length,
+          finalPointCount: simplified.length,
+          avgVelocity: toolState.avgVelocity,
+          maxVelocity: toolState.maxVelocity,
+          platform: navigator.userAgent,
+        },
       });
 
       console.log(
         `[PenTool] Point reduction: ${toolState.accumulatedPoints.length} → ${simplified.length} ` +
-        `(${Math.round((1 - simplified.length / toolState.accumulatedPoints.length) * 100)}% reduction)`
+        `(${Math.round(simplificationRatio * 100)}% reduction) | ` +
+        `Velocity: avg=${toolState.avgVelocity.toFixed(2)}, max=${toolState.maxVelocity.toFixed(2)}`
       );
     }
   }
@@ -245,6 +303,10 @@ export function handlePenPointerUp(
   toolState.isDrawing = false;
   toolState.currentShapeId = null;
   toolState.accumulatedPoints = [];
+  toolState.lastWorldPosition = null;
+  toolState.velocityHistory = [];
+  toolState.avgVelocity = 0;
+  toolState.maxVelocity = 0;
 
   const store = useWhiteboardStore.getState();
   store.saveHistory('draw');

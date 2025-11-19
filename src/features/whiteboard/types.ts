@@ -45,6 +45,8 @@ export interface StrokeMetadata {
   drawDuration?: number;           // Total time from start to end
   platform?: string;               // OS/Browser info
   inputLatency?: number;           // Average input latency
+  avgVelocity?: number;            // Average drawing velocity
+  maxVelocity?: number;            // Maximum drawing velocity
 }
 
 // ============================================================================

@@ -33,7 +33,7 @@ import { GeneralSettingsModal } from '../modals/GeneralSettingsModal';
 import { HorizontalResizeHandle } from './HorizontalResizeHandle';
 import { VerticalResizeHandle } from './VerticalResizeHandle';
 import { WhiteboardSurface } from '../../features/whiteboard/components/WhiteboardSurface';
-import { WhiteboardCanvas } from '../../features/whiteboard/components/WhiteboardCanvas';
+import { WhiteboardCanvasPro } from '../../features/whiteboard/components/WhiteboardCanvasPro';
 import { WhiteboardToolbar } from '../../features/whiteboard/components/WhiteboardToolbar';
 import type { TradingRoomLayoutProps } from './types';
 
@@ -366,7 +366,7 @@ export function TradingRoomLayout({
           <div className="flex-1 min-h-0 relative">
             <ContentViewer activeTab={state.contentTab} onTabChange={handlers.onTabChange} />
             
-            {/* Whiteboard - New Architecture with Surface + Canvas + Toolbar */}
+            {/* Whiteboard - Professional Architecture with Surface + CanvasPro + Toolbar */}
             {state.isWhiteboardActive && state.size && state.size.w > 0 && state.size.h > 0 && (
               <div className="absolute inset-0 z-50 pointer-events-none">
                 <WhiteboardSurface 
@@ -374,7 +374,7 @@ export function TradingRoomLayout({
                   height={state.size.h}
                   className="pointer-events-auto"
                 >
-                  <WhiteboardCanvas 
+                  <WhiteboardCanvasPro 
                     width={state.size.w}
                     height={state.size.h}
                     canAnnotate={state.canManageRoom}

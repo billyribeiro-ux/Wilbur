@@ -98,51 +98,71 @@
    WHITEBOARD FOCUS STYLES - No Orange Borders
    ============================================================================ */
 
-/* Remove default focus outlines globally */
+/* Remove ALL default focus outlines globally - NO ORANGE BORDERS */
 *:focus {
-  outline: none;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-/* Show focus rings only on keyboard navigation */
+/* Remove browser default focus indicators completely */
+*:focus,
+*:active,
+*:focus-within {
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Show focus rings ONLY on keyboard navigation with blue color */
 *:focus-visible {
-  outline: 2px solid var(--focus-ring, #3b82f6);
-  outline-offset: 2px;
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
 }
 
-/* Whiteboard-specific focus styles */
+/* Whiteboard-specific focus styles - NO ORANGE */
 .wb-emoji-picker button:focus:not(:focus-visible),
 .wb-emoji-grid button:focus:not(:focus-visible),
 .wb-emoji-handle:focus:not(:focus-visible),
 .wb-toolbar button:focus:not(:focus-visible),
-.wb-text-editor:focus:not(:focus-visible) {
-  outline: none;
-  box-shadow: none;
+.wb-text-editor:focus:not(:focus-visible),
+canvas:focus:not(:focus-visible),
+[data-whiteboard]:focus:not(:focus-visible),
+[data-whiteboard] *:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-/* Suppress Firefox inner focus borders and orange focus ring for mouse users */
+/* Suppress Firefox inner focus borders and orange focus ring completely */
 button::-moz-focus-inner,
 input[type="button"]::-moz-focus-inner,
 input[type="submit"]::-moz-focus-inner,
 input[type="checkbox"]::-moz-focus-inner,
 input[type="radio"]::-moz-focus-inner {
-  border: 0;
+  border: 0 !important;
+  outline: none !important;
 }
 
 button:-moz-focusring,
 [role="button"]:-moz-focusring,
 input:-moz-focusring,
-select:-moz-focusring {
-  outline: none;
+select:-moz-focusring,
+canvas:-moz-focusring {
+  outline: none !important;
 }
 
-/* Generic: don’t show outline on mouse focus, keep it for keyboard via :focus-visible */
+/* Generic: don't show outline on mouse focus, keep it for keyboard via :focus-visible */
 button:focus:not(:focus-visible),
 [role="button"]:focus:not(:focus-visible),
 input:focus:not(:focus-visible),
 select:focus:not(:focus-visible),
-textarea:focus:not(:focus-visible) {
-  outline: none;
-  box-shadow: none;
+textarea:focus:not(:focus-visible),
+canvas:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+div:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Touch action for transform handles */

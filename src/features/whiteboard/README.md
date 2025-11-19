@@ -8,10 +8,12 @@ Zoom-parity whiteboard system with clean architecture, proper state management, 
 
 ### Component Hierarchy
 ```
-WhiteboardOverlay (container)
-├── WhiteboardCanvas (rendering + interaction)
+WhiteboardSurface (container)
+├── WhiteboardCanvasPro (rendering + interaction with DPR support)
 └── WhiteboardToolbar (UI controls)
 ```
+
+**Note:** Consolidated to single canvas component (WhiteboardCanvasPro) for simplicity and maintainability.
 
 ### State Management
 - **Zustand Store** (`state/whiteboardStore.ts`) - Single source of truth
@@ -219,17 +221,28 @@ Debug categories:
 ```
 src/features/whiteboard/
 ├── components/
-│   ├── WhiteboardCanvas.tsx      # Main canvas with text/emoji handlers
+│   ├── WhiteboardCanvasPro.tsx   # Main canvas with DPR support & all tools
+│   ├── WhiteboardSurface.tsx     # Container component
 │   ├── WhiteboardToolbar.tsx     # Toolbar with formatting controls
 │   ├── TextEditor.tsx            # Inline text editor
 │   └── EmojiPicker.tsx           # Emoji selection UI
+├── tools/
+│   ├── PenTool.ts                # Pen drawing tool
+│   ├── HighlighterTool.ts        # Highlighter tool
+│   ├── EraserTool.ts             # Eraser tool
+│   ├── TextTool.ts               # Text tool
+│   ├── EmojiTool.ts              # Emoji tool
+│   ├── RectangleTool.ts          # Rectangle shape
+│   ├── CircleTool.ts             # Circle shape
+│   ├── LineTool.ts               # Line tool
+│   └── ArrowTool.ts              # Arrow tool
 ├── utils/
 │   ├── drawPrimitives.ts         # Rendering functions
 │   ├── textLayout.ts             # Text measurement & formatting
 │   ├── transform.ts              # Coordinate transforms
 │   └── debug.ts                  # Debug logging
 ├── state/
-│   └── whiteboardStore.ts        # Zustand store
+│   └── whiteboardStore.ts        # Zustand store (SSOT)
 ├── types.ts                      # TypeScript types
 └── __tests__/                    # Unit tests
     ├── textUndo.spec.ts
@@ -332,11 +345,12 @@ Text and emoji are rendered directly to canvas before streaming, ensuring they a
 
 ### Adding New Tools
 1. Add tool type to `types.ts`
-2. Add rendering function to `drawPrimitives.ts`
-3. Add pointer handlers to `WhiteboardCanvas.tsx`
+2. Create tool module in `tools/` directory (e.g., `MyTool.ts`)
+3. Add rendering logic to `WhiteboardCanvasPro.tsx` or tool module
 4. Add toolbar button to `WhiteboardToolbar.tsx`
-5. Add keyboard shortcut to `useKeyboardShortcuts.ts`
-6. Add tests
+5. Update `whiteboardStore.ts` if new state is needed
+6. Add keyboard shortcut if applicable
+7. Add tests
 
 ### Code Style
 - TypeScript strict mode

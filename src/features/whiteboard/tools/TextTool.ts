@@ -2,18 +2,17 @@
 // TEXT TOOL - Microsoft L67+ Enterprise Grade Implementation
 // ============================================================================
 // Performance Metrics:
+// - Canvas-based text rendering: No browser input interference
+// - Inline editing with virtual cursor: Zoom-like experience
 // - RAF batching: 75% fewer store updates
-// - Cached viewport: Zero getBoundingClientRect() calls
-// - DPR-aware positioning: Crisp text on all displays
-// - Local state accumulation: No store spam during drag
+// - DPR-aware rendering: Crisp text on all displays
 // ============================================================================
-// Version: 2.0.0
+// Version: 3.0.0 - Complete rewrite for canvas-based editing
 // Last Updated: 2025-01-18
 // ============================================================================
 
 import { useWhiteboardStore } from '../state/whiteboardStore';
-import { screenToWorld, worldToScreen } from '../utils/transform';
-import { hitTestText } from '../utils/hitTest';
+import { screenToWorld } from '../utils/transform';
 import type {
   TextAnnotation,
   WhiteboardPoint,
@@ -27,17 +26,27 @@ import type {
 
 const TEXT_CONFIG = {
   // Default text properties
-  DEFAULT_WIDTH: 200,
-  DEFAULT_HEIGHT: 100,
+  DEFAULT_WIDTH: 300,
+  DEFAULT_HEIGHT: 40,
   DEFAULT_FONT_SIZE: 16,
   DEFAULT_LINE_HEIGHT: 1.5,
+  MIN_FONT_SIZE: 8,
+  MAX_FONT_SIZE: 96,
+  
+  // Editing
+  CURSOR_WIDTH: 2,
+  CURSOR_BLINK_RATE: 530,
+  SELECTION_COLOR: 'rgba(59, 130, 246, 0.3)',
+  PLACEHOLDER_TEXT: 'Type here...',
   
   // Performance
   BATCH_DELAY: 16, // 60fps
+  DOUBLE_CLICK_TIME: 300, // ms
   
   // Interaction
-  HIT_TEST_PADDING: 5,
-  CURSOR_BLINK_RATE: 530,
+  HIT_TEST_PADDING: 10,
+  RESIZE_HANDLE_SIZE: 8,
+  MINIMUM_DRAG_DISTANCE: 3, // pixels
 } as const;
 
 // ============================================================================
@@ -46,31 +55,41 @@ const TEXT_CONFIG = {
 
 interface TextToolState {
   isActive: boolean;
+  
+  // Selection & editing
   selectedTextId: string | null;
   isEditing: boolean;
-  isDragging: boolean;
-  dragStartPos: WhiteboardPoint | null;
-  dragStartX: number;
-  dragStartY: number;
-  currentTransform: { x?: number; y?: number } | null;
-  
-  // DPR tracking
-  dpr: number;
-  
-  // Performance
-  batchTimer: NodeJS.Timeout | null;
-  pendingUpdates: Map<string, Partial<TextAnnotation>>;
-  
-  // Edit state
+  editBuffer: string;
   cursorPosition: number;
   selectionStart: number;
   selectionEnd: number;
-}
-
-interface ViewportCacheEntry {
-  rect: DOMRect;
-  viewportState: ViewportState;
-  timestamp: number;
+  cursorVisible: boolean;
+  
+  // Interaction states
+  isCreating: boolean;
+  createStartPos: WhiteboardPoint | null;
+  isDragging: boolean;
+  dragStartPos: WhiteboardPoint | null;
+  dragTextStartPos: WhiteboardPoint | null;
+  isResizing: boolean;
+  resizeHandle: string | null;
+  resizeStartSize: { width: number; height: number } | null;
+  
+  // Double-click detection
+  lastClickTime: number;
+  lastClickId: string | null;
+  
+  // DPR & Performance
+  dpr: number;
+  batchTimer: number | null;
+  pendingUpdates: Map<string, Partial<TextAnnotation>>;
+  cursorTimer: number | null;
+  
+  // Viewport cache
+  viewportCache: {
+    rect: DOMRect | null;
+    timestamp: number;
+  };
 }
 
 // ============================================================================
@@ -81,100 +100,67 @@ const toolState: TextToolState = {
   isActive: false,
   selectedTextId: null,
   isEditing: false,
-  isDragging: false,
-  dragStartPos: null,
-  dragStartX: 0,
-  dragStartY: 0,
-  currentTransform: null,
-  dpr: window.devicePixelRatio || 1,
-  batchTimer: null,
-  pendingUpdates: new Map(),
+  editBuffer: '',
   cursorPosition: 0,
   selectionStart: -1,
   selectionEnd: -1,
+  cursorVisible: true,
+  isCreating: false,
+  createStartPos: null,
+  isDragging: false,
+  dragStartPos: null,
+  dragTextStartPos: null,
+  isResizing: false,
+  resizeHandle: null,
+  resizeStartSize: null,
+  lastClickTime: 0,
+  lastClickId: null,
+  dpr: window.devicePixelRatio || 1,
+  batchTimer: null,
+  pendingUpdates: new Map(),
+  cursorTimer: null,
+  viewportCache: {
+    rect: null,
+    timestamp: 0,
+  },
 };
 
-// Viewport cache with DPR support
-const viewportCacheMap = new Map<HTMLElement, ViewportCacheEntry>();
-
-// Pointer capture tracking
-let pointerCaptureElement: HTMLElement | null = null;
-let capturedPointerId: number | null = null;
-
 // ============================================================================
-// Helper Functions
+// Core Functions
 // ============================================================================
 
 /**
- * Gets cached viewport with DPR support
+ * Gets cached viewport rect for performance
  */
-function getCachedViewport(
-  canvasElement: HTMLElement,
-  viewport: ViewportState
-): { rect: DOMRect; viewportState: ViewportState } {
+function getCachedRect(canvasElement: HTMLElement): DOMRect {
   const now = Date.now();
-  const cached = viewportCacheMap.get(canvasElement);
-  
-  // Use cache if fresh (within 100ms)
-  if (cached && now - cached.timestamp < 100) {
-    return cached;
+  if (!toolState.viewportCache.rect || now - toolState.viewportCache.timestamp > 100) {
+    toolState.viewportCache.rect = canvasElement.getBoundingClientRect();
+    toolState.viewportCache.timestamp = now;
   }
-  
-  // Update cache with DPR-aware viewport
-  const rect = canvasElement.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  const viewportState: ViewportState = {
-    ...viewport,
-    dpr,
-    width: rect.width,
-    height: rect.height,
-  };
-  
-  const entry: ViewportCacheEntry = {
-    rect,
-    viewportState,
-    timestamp: now,
-  };
-  
-  viewportCacheMap.set(canvasElement, entry);
-  return entry;
-}
-
-/**
- * Converts screen coordinates to world coordinates with DPR
- */
-function screenToWorldWithDPR(
-  screenX: number,
-  screenY: number,
-  viewport: ViewportState
-): WhiteboardPoint {
-  const dpr = viewport.dpr || 1;
-  return screenToWorld(screenX * dpr, screenY * dpr, viewport);
+  return toolState.viewportCache.rect;
 }
 
 /**
  * Batch updates for performance
  */
-function scheduleBatchUpdate(id: string, updates: Partial<TextAnnotation>) {
-  // Accumulate updates
+function scheduleBatchUpdate(id: string, updates: Partial<TextAnnotation>): void {
   const existing = toolState.pendingUpdates.get(id) || {};
   toolState.pendingUpdates.set(id, { ...existing, ...updates });
   
-  // Clear existing timer
   if (toolState.batchTimer) {
-    clearTimeout(toolState.batchTimer);
+    cancelAnimationFrame(toolState.batchTimer);
   }
   
-  // Schedule batch flush
-  toolState.batchTimer = setTimeout(() => {
+  toolState.batchTimer = requestAnimationFrame(() => {
     flushBatchUpdates();
-  }, TEXT_CONFIG.BATCH_DELAY);
+  });
 }
 
 /**
  * Flushes all pending updates
  */
-function flushBatchUpdates() {
+function flushBatchUpdates(): void {
   if (toolState.pendingUpdates.size === 0) return;
   
   const store = useWhiteboardStore.getState();
@@ -197,29 +183,27 @@ function flushBatchUpdates() {
 }
 
 /**
- * Cleanup pointer capture
+ * Starts cursor blinking animation
  */
-function cleanupPointerCapture() {
-  // Flush any pending updates
-  if (toolState.batchTimer) {
-    clearTimeout(toolState.batchTimer);
-    flushBatchUpdates();
-  }
+function startCursorBlink(): void {
+  stopCursorBlink();
+  toolState.cursorVisible = true;
   
-  // Release pointer capture
-  if (pointerCaptureElement && capturedPointerId !== null) {
-    try {
-      pointerCaptureElement.releasePointerCapture(capturedPointerId);
-    } catch {
-      // Already released or unsupported
-    }
+  toolState.cursorTimer = window.setInterval(() => {
+    toolState.cursorVisible = !toolState.cursorVisible;
+    // Cursor blink is handled by the component's render cycle
+  }, TEXT_CONFIG.CURSOR_BLINK_RATE);
+}
+
+/**
+ * Stops cursor blinking
+ */
+function stopCursorBlink(): void {
+  if (toolState.cursorTimer) {
+    clearInterval(toolState.cursorTimer);
+    toolState.cursorTimer = null;
   }
-  
-  pointerCaptureElement = null;
-  capturedPointerId = null;
-  toolState.isDragging = false;
-  toolState.dragStartPos = null;
-  toolState.currentTransform = null;
+  toolState.cursorVisible = true;
 }
 
 // ============================================================================
@@ -233,35 +217,37 @@ export function activateTextTool(canvasElement?: HTMLElement): void {
   toolState.isActive = true;
   toolState.dpr = window.devicePixelRatio || 1;
   
-  // Pre-cache viewport if canvas provided
+  // Pre-cache viewport
   if (canvasElement) {
-    const store = useWhiteboardStore.getState();
-    const viewport: ViewportState = {
-      panX: store.viewport.panX,
-      panY: store.viewport.panY,
-      zoom: store.viewport.zoom,
-      width: canvasElement.clientWidth,
-      height: canvasElement.clientHeight,
-      dpr: toolState.dpr,
-    };
-    getCachedViewport(canvasElement, viewport);
+    getCachedRect(canvasElement);
   }
   
-  console.log('[TextTool] Activated with DPR:', toolState.dpr);
+  console.log('[TextTool] Activated');
 }
 
 /**
  * Deactivates the text tool
  */
 export function deactivateTextTool(): void {
-  cleanupPointerCapture();
+  // Stop any active editing
+  if (toolState.isEditing && toolState.selectedTextId) {
+    commitTextEdit();
+  }
   
-  // Clear cache
-  viewportCacheMap.clear();
+  // Clean up
+  stopCursorBlink();
+  if (toolState.batchTimer) {
+    cancelAnimationFrame(toolState.batchTimer);
+    flushBatchUpdates();
+  }
   
+  // Reset state
   toolState.isActive = false;
   toolState.selectedTextId = null;
   toolState.isEditing = false;
+  toolState.isCreating = false;
+  toolState.isDragging = false;
+  toolState.isResizing = false;
   
   console.log('[TextTool] Deactivated');
 }
@@ -274,8 +260,8 @@ export function deactivateTextTool(): void {
  * Creates a new text annotation at world coordinates
  */
 export function createText(
-  content: string,
   at: WhiteboardPoint,
+  content: string = '',
   options?: Partial<TextAnnotation>
 ): string {
   const store = useWhiteboardStore.getState();
@@ -285,38 +271,33 @@ export function createText(
   const text: TextAnnotation = {
     id,
     type: 'text',
-    content,
+    content: content || '',
     x: at.x,
     y: at.y,
     scale: 1,
     rotation: 0,
-    opacity: store.opacity,
+    opacity: store.opacity || 1,
     locked: false,
     
-    // Text properties from store
-    fontFamily: store.fontFamily || 'Inter, system-ui, sans-serif',
+    // Text properties
+    fontFamily: store.fontFamily || 'Inter, system-ui, -apple-system, sans-serif',
     fontSize: store.fontSize || TEXT_CONFIG.DEFAULT_FONT_SIZE,
     fontWeight: store.fontWeight || 400,
     fontStyle: store.fontStyle || 'normal',
     textDecoration: store.textDecoration || 'none',
     lineHeight: store.lineHeight || TEXT_CONFIG.DEFAULT_LINE_HEIGHT,
-    textAlign: store.textAlign || 'left',
+    textAlign: (store.textAlign === 'justify' ? 'left' : store.textAlign) || 'left',
     color: store.color || '#000000',
     
-    // Size hints
-    width: TEXT_CONFIG.DEFAULT_WIDTH,
-    height: TEXT_CONFIG.DEFAULT_HEIGHT,
+    // Bounds
+    width: options?.width || TEXT_CONFIG.DEFAULT_WIDTH,
+    height: options?.height || TEXT_CONFIG.DEFAULT_HEIGHT,
     
     // Metadata
     createdAt: now,
     updatedAt: now,
-    metadata: {
-      dpr: toolState.dpr,
-      deviceType: getDeviceType(),
-      pointerType: 'mouse',
-    },
     
-    // Override with any provided options
+    // Override with options
     ...options,
   };
   
@@ -324,32 +305,30 @@ export function createText(
   const newShapes = new Map(store.shapes);
   newShapes.set(id, text as unknown as WhiteboardShape);
   useWhiteboardStore.setState({ shapes: newShapes });
-  store.saveHistory('add-text');
   
-  // Select the new text
+  // Immediately enter edit mode for new text
   toolState.selectedTextId = id;
+  startTextEdit(id);
   
   console.log('[TextTool] Created text:', id);
   return id;
 }
 
 /**
- * Updates a text annotation
+ * Updates text content and properties
  */
 export function updateText(id: string, updates: Partial<TextAnnotation>): void {
-  const store = useWhiteboardStore.getState();
-  const shape = store.shapes.get(id);
-  
-  if (!shape || shape.type !== 'text') {
-    console.warn('[TextTool] Text not found:', id);
-    return;
-  }
-  
-  // Use batching for performance during drag
-  if (toolState.isDragging) {
+  if (toolState.isDragging || toolState.isResizing) {
     scheduleBatchUpdate(id, updates);
   } else {
-    // Immediate update for non-drag operations
+    const store = useWhiteboardStore.getState();
+    const shape = store.shapes.get(id);
+    
+    if (!shape || shape.type !== 'text') {
+      console.warn('[TextTool] Text not found:', id);
+      return;
+    }
+    
     const newShapes = new Map(store.shapes);
     newShapes.set(id, {
       ...shape,
@@ -365,14 +344,13 @@ export function updateText(id: string, updates: Partial<TextAnnotation>): void {
  */
 export function deleteText(id: string): void {
   const store = useWhiteboardStore.getState();
-  const shapes = store.shapes;
   
-  if (!shapes.has(id)) {
-    console.warn('[TextTool] Text not found for deletion:', id);
+  if (!store.shapes.has(id)) {
+    console.warn('[TextTool] Text not found:', id);
     return;
   }
   
-  const newShapes = new Map(shapes);
+  const newShapes = new Map(store.shapes);
   newShapes.delete(id);
   useWhiteboardStore.setState({ shapes: newShapes });
   store.saveHistory('delete-text');
@@ -380,9 +358,72 @@ export function deleteText(id: string): void {
   if (toolState.selectedTextId === id) {
     toolState.selectedTextId = null;
     toolState.isEditing = false;
+    stopCursorBlink();
   }
   
   console.log('[TextTool] Deleted text:', id);
+}
+
+// ============================================================================
+// Text Editing
+// ============================================================================
+
+/**
+ * Starts editing a text annotation
+ */
+export function startTextEdit(id: string): void {
+  const store = useWhiteboardStore.getState();
+  const shape = store.shapes.get(id);
+  
+  if (!shape || shape.type !== 'text') return;
+  
+  const text = shape as unknown as TextAnnotation;
+  
+  toolState.selectedTextId = id;
+  toolState.isEditing = true;
+  toolState.editBuffer = text.content || '';
+  toolState.cursorPosition = toolState.editBuffer.length;
+  toolState.selectionStart = -1;
+  toolState.selectionEnd = -1;
+  
+  startCursorBlink();
+  
+  console.log('[TextTool] Started editing:', id);
+}
+
+/**
+ * Commits current text edit
+ */
+export function commitTextEdit(): void {
+  if (!toolState.isEditing || !toolState.selectedTextId) return;
+  
+  // Update text with edited content
+  updateText(toolState.selectedTextId, {
+    content: toolState.editBuffer,
+  });
+  
+  const store = useWhiteboardStore.getState();
+  store.saveHistory('edit-text');
+  
+  // Exit edit mode
+  toolState.isEditing = false;
+  toolState.editBuffer = '';
+  stopCursorBlink();
+  
+  console.log('[TextTool] Committed edit:', toolState.selectedTextId);
+}
+
+/**
+ * Cancels current text edit
+ */
+export function cancelTextEdit(): void {
+  if (!toolState.isEditing) return;
+  
+  toolState.isEditing = false;
+  toolState.editBuffer = '';
+  stopCursorBlink();
+  
+  console.log('[TextTool] Cancelled edit');
 }
 
 // ============================================================================
@@ -399,85 +440,87 @@ export function handleTextPointerDown(
 ): boolean {
   if (!toolState.isActive || e.button !== 0) return false;
   
-  try {
-    // Get cached viewport with DPR
-    const { rect, viewportState } = getCachedViewport(canvasElement, viewport);
-    const screenX = e.clientX - rect.left;
-    const screenY = e.clientY - rect.top;
+  const rect = getCachedRect(canvasElement);
+  const screenX = e.clientX - rect.left;
+  const screenY = e.clientY - rect.top;
+  const worldPos = screenToWorld(screenX, screenY, viewport);
+  
+  const store = useWhiteboardStore.getState();
+  const shapes = Array.from(store.shapes.values());
+  
+  // Check for double-click
+  const now = Date.now();
+  const timeSinceLastClick = now - toolState.lastClickTime;
+  
+  // Find clicked text
+  let clickedTextId: string | null = null;
+  for (let i = shapes.length - 1; i >= 0; i--) {
+    const shape = shapes[i];
+    if (shape.type !== 'text') continue;
     
-    // Convert to world coordinates with DPR
-    const worldPos = screenToWorldWithDPR(screenX, screenY, viewportState);
-    
-    const store = useWhiteboardStore.getState();
-    const shapes = Array.from(store.shapes.values());
-    
-    // Priority 1: Check if clicking on selected text
-    if (toolState.selectedTextId) {
-      const selectedShape = store.shapes.get(toolState.selectedTextId);
-      if (selectedShape && selectedShape.type === 'text') {
-        const text = selectedShape as unknown as TextAnnotation;
-        if (hitTestText(worldPos, text, viewportState.zoom)) {
-          if (!text.locked) {
-            // Start dragging
-            toolState.isDragging = true;
-            toolState.dragStartPos = worldPos;
-            toolState.dragStartX = text.x;
-            toolState.dragStartY = text.y;
-            
-            // Capture pointer
-            try {
-              canvasElement.setPointerCapture(e.pointerId);
-              pointerCaptureElement = canvasElement;
-              capturedPointerId = e.pointerId;
-            } catch (error) {
-              console.warn('[TextTool] Pointer capture failed:', error);
-            }
-            
-            e.preventDefault();
-            return true;
-          }
-        }
-      }
+    const text = shape as unknown as TextAnnotation;
+    if (isPointInText(worldPos, text)) {
+      clickedTextId = shape.id;
+      break;
     }
-    
-    // Priority 2: Check all texts for hit (reverse order for z-index)
-    for (let i = shapes.length - 1; i >= 0; i--) {
-      const shape = shapes[i];
-      if (shape.type !== 'text') continue;
-      
-      const text = shape as unknown as TextAnnotation;
-      if (hitTestText(worldPos, text, viewportState.zoom) && !text.locked) {
-        // Select this text
-        toolState.selectedTextId = shape.id;
-        toolState.isDragging = true;
-        toolState.dragStartPos = worldPos;
-        toolState.dragStartX = text.x;
-        toolState.dragStartY = text.y;
-        
-        // Capture pointer
-        try {
-          canvasElement.setPointerCapture(e.pointerId);
-          pointerCaptureElement = canvasElement;
-          capturedPointerId = e.pointerId;
-        } catch (error) {
-          console.warn('[TextTool] Pointer capture failed:', error);
-        }
-        
-        e.preventDefault();
-        return true;
-      }
-    }
-    
-    // Priority 3: Clicked empty space - deselect
-    toolState.selectedTextId = null;
-    toolState.isEditing = false;
-    cleanupPointerCapture();
-    
-    return false;
-  } catch (error) {
-    console.error('[TextTool] Error in pointerDown:', error);
-    return false;
   }
+  
+  // Handle double-click to edit
+  if (clickedTextId && 
+      clickedTextId === toolState.lastClickId && 
+      timeSinceLastClick < TEXT_CONFIG.DOUBLE_CLICK_TIME) {
+    startTextEdit(clickedTextId);
+    toolState.lastClickTime = 0;
+    toolState.lastClickId = null;
+    e.preventDefault();
+    return true;
+  }
+  
+  // Update click tracking
+  toolState.lastClickTime = now;
+  toolState.lastClickId = clickedTextId;
+  
+  // If editing, check if clicking outside
+  if (toolState.isEditing) {
+    if (!clickedTextId || clickedTextId !== toolState.selectedTextId) {
+      commitTextEdit();
+    }
+  }
+  
+  // Handle text selection/dragging
+  if (clickedTextId) {
+    const text = store.shapes.get(clickedTextId) as unknown as TextAnnotation;
+    
+    if (!text.locked) {
+      toolState.selectedTextId = clickedTextId;
+      toolState.isDragging = true;
+      toolState.dragStartPos = worldPos;
+      toolState.dragTextStartPos = { x: text.x, y: text.y };
+      
+      // Capture pointer
+      canvasElement.setPointerCapture(e.pointerId);
+      
+      e.preventDefault();
+      return true;
+    }
+  } else {
+    // Clicked empty space - create new text
+    if (!toolState.isEditing) {
+      toolState.isCreating = true;
+      toolState.createStartPos = worldPos;
+      
+      // Create text immediately at click position
+      createText(worldPos);
+      
+      e.preventDefault();
+      return true;
+    } else {
+      // Deselect if not clicking on any text
+      toolState.selectedTextId = null;
+    }
+  }
+  
+  return false;
 }
 
 /**
@@ -490,35 +533,31 @@ export function handleTextPointerMove(
 ): boolean {
   if (!toolState.isActive) return false;
   
-  try {
-    if (toolState.isDragging && toolState.selectedTextId && toolState.dragStartPos) {
-      // Get cached viewport with DPR
-      const { rect, viewportState } = getCachedViewport(canvasElement, viewport);
-      const screenX = e.clientX - rect.left;
-      const screenY = e.clientY - rect.top;
-      
-      // Convert to world coordinates with DPR
-      const worldPos = screenToWorldWithDPR(screenX, screenY, viewportState);
-      
-      // Calculate delta
-      const dx = worldPos.x - toolState.dragStartPos.x;
-      const dy = worldPos.y - toolState.dragStartPos.y;
-      
-      // Update position (batched)
+  if (toolState.isDragging && toolState.selectedTextId && toolState.dragStartPos && toolState.dragTextStartPos) {
+    const rect = getCachedRect(canvasElement);
+    const screenX = e.clientX - rect.left;
+    const screenY = e.clientY - rect.top;
+    const worldPos = screenToWorld(screenX, screenY, viewport);
+    
+    // Calculate movement
+    const dx = worldPos.x - toolState.dragStartPos.x;
+    const dy = worldPos.y - toolState.dragStartPos.y;
+    
+    // Only start dragging after minimum distance
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance > TEXT_CONFIG.MINIMUM_DRAG_DISTANCE / viewport.scale) {
+      // Update text position
       updateText(toolState.selectedTextId, {
-        x: toolState.dragStartX + dx,
-        y: toolState.dragStartY + dy,
+        x: toolState.dragTextStartPos.x + dx,
+        y: toolState.dragTextStartPos.y + dy,
       });
-      
-      e.preventDefault();
-      return true;
     }
     
-    return false;
-  } catch (error) {
-    console.error('[TextTool] Error in pointerMove:', error);
-    return false;
+    e.preventDefault();
+    return true;
   }
+  
+  return false;
 }
 
 /**
@@ -530,79 +569,175 @@ export function handleTextPointerUp(
 ): boolean {
   if (!toolState.isActive) return false;
   
-  try {
-    const wasDragging = toolState.isDragging;
-    
-    if (wasDragging) {
-      // Flush any pending updates
-      if (toolState.batchTimer) {
-        clearTimeout(toolState.batchTimer);
-        flushBatchUpdates();
-      }
-      
-      // Save history
-      const store = useWhiteboardStore.getState();
-      store.saveHistory('move-text');
+  let handled = false;
+  
+  if (toolState.isDragging) {
+    if (toolState.batchTimer) {
+      cancelAnimationFrame(toolState.batchTimer);
+      flushBatchUpdates();
     }
     
-    cleanupPointerCapture();
+    const store = useWhiteboardStore.getState();
+    store.saveHistory('move-text');
     
-    return wasDragging;
-  } catch (error) {
-    console.error('[TextTool] Error in pointerUp:', error);
-    return false;
+    toolState.isDragging = false;
+    toolState.dragStartPos = null;
+    toolState.dragTextStartPos = null;
+    
+    canvasElement.releasePointerCapture(e.pointerId);
+    handled = true;
   }
+  
+  if (toolState.isCreating) {
+    toolState.isCreating = false;
+    toolState.createStartPos = null;
+    handled = true;
+  }
+  
+  return handled;
 }
 
 // ============================================================================
-// Keyboard Event Handler
+// Keyboard Event Handlers
 // ============================================================================
 
 /**
- * Handles keyboard events for text editing
+ * Handles keyboard input for text editing
  */
 export function handleTextKeyDown(e: KeyboardEvent): boolean {
-  if (!toolState.isActive || !toolState.selectedTextId) return false;
+  if (!toolState.isActive) return false;
   
-  try {
-    const store = useWhiteboardStore.getState();
-    const shape = store.shapes.get(toolState.selectedTextId);
-    
-    if (!shape || shape.type !== 'text' || shape.locked) return false;
-    
-    // Delete selected text
-    if (e.key === 'Delete' || e.key === 'Backspace') {
-      if (!toolState.isEditing) {
+  // CRITICAL: Prevent browser from handling text input
+  // This stops the browser's native text input from triggering
+  
+  // If editing, handle text input
+  if (toolState.isEditing && toolState.selectedTextId) {
+    // Prevent ALL default browser behavior during editing
+    e.stopPropagation();
+    switch (e.key) {
+      case 'Escape':
+        cancelTextEdit();
+        e.preventDefault();
+        return true;
+        
+      case 'Enter':
+        if (e.shiftKey) {
+          // Add newline
+          insertTextAtCursor('\n');
+        } else {
+          // Commit edit
+          commitTextEdit();
+        }
+        e.preventDefault();
+        return true;
+        
+      case 'Backspace':
+        if (toolState.cursorPosition > 0) {
+          toolState.editBuffer = 
+            toolState.editBuffer.slice(0, toolState.cursorPosition - 1) + 
+            toolState.editBuffer.slice(toolState.cursorPosition);
+          toolState.cursorPosition--;
+          updateText(toolState.selectedTextId, { content: toolState.editBuffer });
+        }
+        e.preventDefault();
+        return true;
+        
+      case 'Delete':
+        if (toolState.cursorPosition < toolState.editBuffer.length) {
+          toolState.editBuffer = 
+            toolState.editBuffer.slice(0, toolState.cursorPosition) + 
+            toolState.editBuffer.slice(toolState.cursorPosition + 1);
+          updateText(toolState.selectedTextId, { content: toolState.editBuffer });
+        }
+        e.preventDefault();
+        return true;
+        
+      case 'ArrowLeft':
+        if (toolState.cursorPosition > 0) {
+          toolState.cursorPosition--;
+          toolState.cursorVisible = true;
+        }
+        e.preventDefault();
+        return true;
+        
+      case 'ArrowRight':
+        if (toolState.cursorPosition < toolState.editBuffer.length) {
+          toolState.cursorPosition++;
+          toolState.cursorVisible = true;
+        }
+        e.preventDefault();
+        return true;
+        
+      case 'Home':
+        toolState.cursorPosition = 0;
+        toolState.cursorVisible = true;
+        e.preventDefault();
+        return true;
+        
+      case 'End':
+        toolState.cursorPosition = toolState.editBuffer.length;
+        toolState.cursorVisible = true;
+        e.preventDefault();
+        return true;
+        
+      default:
+        // Handle regular character input
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+          insertTextAtCursor(e.key);
+          e.preventDefault();
+          return true;
+        }
+    }
+  } else if (toolState.selectedTextId) {
+    // Not editing but text is selected
+    switch (e.key) {
+      case 'Delete':
+      case 'Backspace':
         deleteText(toolState.selectedTextId);
         e.preventDefault();
         return true;
-      }
+        
+      case 'Enter':
+        startTextEdit(toolState.selectedTextId);
+        e.preventDefault();
+        return true;
     }
-    
-    // Enter edit mode
-    if (e.key === 'Enter' && !toolState.isEditing) {
-      setEditingText(toolState.selectedTextId, true);
-      e.preventDefault();
-      return true;
-    }
-    
-    // Exit edit mode
-    if (e.key === 'Escape' && toolState.isEditing) {
-      setEditingText(toolState.selectedTextId, false);
-      e.preventDefault();
-      return true;
-    }
-    
-    return false;
-  } catch (error) {
-    console.error('[TextTool] Error in keyDown:', error);
-    return false;
   }
+  
+  return false;
+}
+
+/**
+ * Inserts text at current cursor position
+ */
+function insertTextAtCursor(text: string): void {
+  if (!toolState.isEditing || !toolState.selectedTextId) return;
+  
+  toolState.editBuffer = 
+    toolState.editBuffer.slice(0, toolState.cursorPosition) + 
+    text + 
+    toolState.editBuffer.slice(toolState.cursorPosition);
+  toolState.cursorPosition += text.length;
+  toolState.cursorVisible = true;
+  
+  updateText(toolState.selectedTextId, { content: toolState.editBuffer });
 }
 
 // ============================================================================
-// Text Selection & Editing
+// Helper Functions
 // ============================================================================
+
+/**
+ * Tests if a point is inside a text annotation
+ */
+function isPointInText(point: WhiteboardPoint, text: TextAnnotation): boolean {
+  const padding = TEXT_CONFIG.HIT_TEST_PADDING;
+  
+  return point.x >= text.x - padding &&
+         point.x <= text.x + (text.width || TEXT_CONFIG.DEFAULT_WIDTH) + padding &&
+         point.y >= text.y - padding &&
+         point.y <= text.y + (text.height || TEXT_CONFIG.DEFAULT_HEIGHT) + padding;
+}
 
 /**
  * Gets the currently selected text
@@ -619,19 +754,6 @@ export function getSelectedText(): TextAnnotation | null {
 }
 
 /**
- * Sets the editing state for a text
- */
-export function setEditingText(id: string, editing: boolean): void {
-  toolState.isEditing = editing;
-  if (editing) {
-    toolState.selectedTextId = id;
-    toolState.cursorPosition = 0;
-    toolState.selectionStart = -1;
-    toolState.selectionEnd = -1;
-  }
-}
-
-/**
  * Checks if currently editing text
  */
 export function isEditingText(): boolean {
@@ -639,37 +761,26 @@ export function isEditingText(): boolean {
 }
 
 /**
- * Sets text alignment
+ * Gets current edit state for rendering
  */
-export function setTextAlign(
-  id: string,
-  align: 'left' | 'center' | 'right' | 'justify'
-): void {
-  updateText(id, { textAlign: align });
-}
-
-/**
- * Sets alignment for selected text
- */
-export function setSelectedTextAlign(
-  align: 'left' | 'center' | 'right' | 'justify'
-): void {
-  if (toolState.selectedTextId) {
-    setTextAlign(toolState.selectedTextId, align);
-  }
-}
-
-// ============================================================================
-// Utility Functions
-// ============================================================================
-
-/**
- * Gets device type for metadata
- */
-function getDeviceType(): 'touch' | 'coarse' | 'fine' {
-  if ('ontouchstart' in window) return 'touch';
-  if (window.matchMedia('(pointer: coarse)').matches) return 'coarse';
-  return 'fine';
+export function getTextEditState(): {
+  isEditing: boolean;
+  textId: string | null;
+  buffer: string;
+  cursorPosition: number;
+  cursorVisible: boolean;
+  selectionStart: number;
+  selectionEnd: number;
+} {
+  return {
+    isEditing: toolState.isEditing,
+    textId: toolState.selectedTextId,
+    buffer: toolState.editBuffer,
+    cursorPosition: toolState.cursorPosition,
+    cursorVisible: toolState.cursorVisible,
+    selectionStart: toolState.selectionStart,
+    selectionEnd: toolState.selectionEnd,
+  };
 }
 
 // ============================================================================
@@ -678,9 +789,8 @@ function getDeviceType(): 'touch' | 'coarse' | 'fine' {
 
 export const __testing__ = {
   toolState,
-  getCachedViewport,
-  screenToWorldWithDPR,
-  scheduleBatchUpdate,
-  flushBatchUpdates,
   TEXT_CONFIG,
+  isPointInText,
+  insertTextAtCursor,
+  getCachedRect,
 };
