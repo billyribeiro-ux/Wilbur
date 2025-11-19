@@ -6,8 +6,9 @@
 // - Cached viewport: Zero getBoundingClientRect() calls during drawing
 // - Point simplification: 80-95% memory reduction
 // - DPR-aware rendering: Crisp output on all displays
+// - Smooth stroke interpolation: Eliminates jitter and gaps
 // ============================================================================
-// Version: 2.0.1 - Fixed type compatibility
+// Version: 2.1.0 - Enhanced smoothing and stability
 // Last Updated: 2025-01-18
 // ============================================================================
 
@@ -15,10 +16,8 @@ import { useWhiteboardStore } from '../state/whiteboardStore';
 import { screenToWorld } from '../utils/transform';
 import { createDefaultHighlighterGradient } from '../utils/gradientBuilder';
 import {
-  pointerBatcher,
   viewportCache,
   simplifyPoints,
-  simplifyPointsByDistance,
 } from '../utils/performance/index';
 import type { 
   WhiteboardShape, 
@@ -44,7 +43,7 @@ interface HighlighterAnnotationWithMetadata {
   composite: 'multiply' | 'normal' | 'overlay';
   createdAt: number;
   updatedAt: number;
-  metadata?: StrokeMetadata; // Optional metadata field
+  metadata?: StrokeMetadata;
   smoothing?: number;
   capStyle?: 'round' | 'square' | 'butt';
   joinStyle?: 'round' | 'miter' | 'bevel';
@@ -56,19 +55,24 @@ interface HighlighterAnnotationWithMetadata {
 
 const HIGHLIGHTER_CONFIG = {
   // Simplification thresholds
-  DISTANCE_THRESHOLD: 0.002,  // Min distance for point accumulation (world units)
-  EPSILON_TOLERANCE: 0.003,    // Douglas-Peucker tolerance for final simplification
+  DISTANCE_THRESHOLD: 0.5,      // Min distance for point accumulation (pixels)
+  EPSILON_TOLERANCE: 0.5,        // Douglas-Peucker tolerance for final simplification
   
   // Drawing parameters
-  THICKNESS_MULTIPLIER: 3,     // Highlighter thickness relative to base size
-  MIN_POINTS_TO_COMMIT: 2,     // Minimum points required for valid stroke
+  THICKNESS_MULTIPLIER: 3,      // Highlighter thickness relative to base size
+  MIN_POINTS_TO_COMMIT: 2,      // Minimum points required for valid stroke
   
-  // Performance
-  BATCH_SIZE: 8,              // RAF batch size for pointer events
+  // Performance - INSTANT, no batching or throttling
+  BATCH_SIZE: 1,                // No batching - instant updates
+  UPDATE_THROTTLE: 0,            // No throttling - instant response
   
   // DPR handling
   MIN_DPR: 1,
   MAX_DPR: 3,
+  
+  // NO SMOOTHING - Direct, instant strokes
+  INTERPOLATION_THRESHOLD: 10,   // Only fill very large gaps
+  MAX_INTERPOLATION_STEPS: 3,    // Minimal interpolation
 } as const;
 
 // ============================================================================
@@ -79,11 +83,16 @@ interface HighlighterToolState {
   isActive: boolean;
   currentStroke: HighlighterAnnotationWithMetadata | null;
   drawing: boolean;
-  batcher: ReturnType<typeof pointerBatcher> | null;
   viewportCache: ReturnType<typeof viewportCache> | null;
   accumulatedPoints: WhiteboardPoint[];
+  smoothedPoints: WhiteboardPoint[];
   dpr: number;
   lastPointerPosition: { x: number; y: number } | null;
+  lastWorldPosition: WhiteboardPoint | null;
+  velocityHistory: number[];
+  lastUpdateTime: number;
+  smoothingBuffer: WhiteboardPoint[];
+  predictionPoints: WhiteboardPoint[];
 }
 
 interface HighlighterToolMetrics {
@@ -91,6 +100,8 @@ interface HighlighterToolMetrics {
   totalPoints: number;
   simplificationRatio: number;
   avgDrawTime: number;
+  avgVelocity: number;
+  maxVelocity: number;
 }
 
 // ============================================================================
@@ -101,11 +112,16 @@ const toolState: HighlighterToolState = {
   isActive: false,
   currentStroke: null,
   drawing: false,
-  batcher: null,
   viewportCache: null,
   accumulatedPoints: [],
+  smoothedPoints: [],
   dpr: window.devicePixelRatio || 1,
   lastPointerPosition: null,
+  lastWorldPosition: null,
+  velocityHistory: [],
+  lastUpdateTime: 0,
+  smoothingBuffer: [],
+  predictionPoints: [],
 };
 
 const metrics: HighlighterToolMetrics = {
@@ -113,7 +129,14 @@ const metrics: HighlighterToolMetrics = {
   totalPoints: 0,
   simplificationRatio: 0,
   avgDrawTime: 0,
+  avgVelocity: 0,
+  maxVelocity: 0,
 };
+
+// ============================================================================
+// Simplified Smoothing - Direct and Uniform
+// ============================================================================
+// All complex smoothing algorithms removed for better performance and uniformity
 
 // ============================================================================
 // DPR Utilities
@@ -125,20 +148,6 @@ const metrics: HighlighterToolMetrics = {
 function getNormalizedDPR(): number {
   const dpr = window.devicePixelRatio || 1;
   return Math.max(HIGHLIGHTER_CONFIG.MIN_DPR, Math.min(HIGHLIGHTER_CONFIG.MAX_DPR, dpr));
-}
-
-/**
- * Converts screen coordinates to DPR-adjusted coordinates
- */
-function screenToDPRAdjusted(
-  screenX: number,
-  screenY: number,
-  dpr: number
-): { x: number; y: number } {
-  return {
-    x: screenX * dpr,
-    y: screenY * dpr,
-  };
 }
 
 /**
@@ -165,8 +174,7 @@ export function activateHighlighterTool(canvasElement?: HTMLElement): void {
   toolState.isActive = true;
   toolState.dpr = getNormalizedDPR();
   
-  // Initialize performance utilities
-  toolState.batcher = pointerBatcher(() => {}, HIGHLIGHTER_CONFIG.BATCH_SIZE);
+  // Initialize viewport cache (batcher not needed - no store updates during drawing)
   toolState.viewportCache = viewportCache();
 
   // Pre-cache viewport if canvas element provided
@@ -174,6 +182,11 @@ export function activateHighlighterTool(canvasElement?: HTMLElement): void {
     const store = useWhiteboardStore.getState();
     toolState.viewportCache.get(canvasElement, store.viewport);
   }
+
+  // Reset smoothing buffers
+  toolState.smoothingBuffer = [];
+  toolState.velocityHistory = [];
+  toolState.predictionPoints = [];
 
   // Listen for DPR changes
   const mediaQuery = window.matchMedia(`(resolution: ${toolState.dpr}dppx)`);
@@ -192,11 +205,6 @@ export function deactivateHighlighterTool(): void {
     return;
   }
 
-  // Cancel pending operations
-  if (toolState.batcher) {
-    toolState.batcher.cancel();
-  }
-
   // Commit any incomplete stroke
   if (toolState.drawing && toolState.currentStroke) {
     commitStroke();
@@ -207,7 +215,12 @@ export function deactivateHighlighterTool(): void {
   toolState.currentStroke = null;
   toolState.drawing = false;
   toolState.accumulatedPoints = [];
+  toolState.smoothedPoints = [];
   toolState.lastPointerPosition = null;
+  toolState.lastWorldPosition = null;
+  toolState.velocityHistory = [];
+  toolState.smoothingBuffer = [];
+  toolState.predictionPoints = [];
 
   console.log('[HighlighterTool] Deactivated');
 }
@@ -234,16 +247,20 @@ export function handleHighlighterPointerDown(
     // Get cached viewport for performance
     const { rect, viewportState } = toolState.viewportCache!.get(canvasElement, viewport);
 
-    // Calculate DPR-adjusted screen coordinates
+    // Calculate screen coordinates (no DPR adjustment needed for input)
     const screenX = e.clientX - rect.left;
     const screenY = e.clientY - rect.top;
-    
-    // Apply DPR adjustment for high-resolution displays
-    const dprAdjusted = screenToDPRAdjusted(screenX, screenY, toolState.dpr);
-    const worldPos = screenToWorld(dprAdjusted.x, dprAdjusted.y, viewportState);
+    const worldPos = screenToWorld(screenX, screenY, viewportState);
 
-    // Store last pointer position for interpolation
+    // Store positions
     toolState.lastPointerPosition = { x: e.clientX, y: e.clientY };
+    toolState.lastWorldPosition = worldPos;
+    toolState.lastUpdateTime = performance.now();
+
+    // Reset smoothing buffers
+    toolState.smoothingBuffer = [worldPos];
+    toolState.velocityHistory = [0];
+    toolState.predictionPoints = [];
 
     // Create new stroke with proper configuration
     const store = useWhiteboardStore.getState();
@@ -269,6 +286,9 @@ export function handleHighlighterPointerDown(
       composite: 'multiply',
       createdAt: now,
       updatedAt: now,
+      smoothing: 0.5, // Enable smoothing
+      capStyle: 'round',
+      joinStyle: 'round',
       metadata: {
         dpr: toolState.dpr,
         deviceType: getDeviceType(),
@@ -279,6 +299,7 @@ export function handleHighlighterPointerDown(
     toolState.currentStroke = stroke;
     toolState.drawing = true;
     toolState.accumulatedPoints = [worldPos];
+    toolState.smoothedPoints = [worldPos];
 
     // Insert into store for immediate rendering
     const newShapes = new Map(store.shapes);
@@ -318,55 +339,40 @@ export function handleHighlighterPointerMove(
     // Get cached viewport for performance
     const { rect, viewportState } = toolState.viewportCache!.get(canvasElement, viewport);
 
-    // Calculate DPR-adjusted coordinates
+    // Calculate screen coordinates
     const screenX = e.clientX - rect.left;
     const screenY = e.clientY - rect.top;
-    
-    const dprAdjusted = screenToDPRAdjusted(screenX, screenY, toolState.dpr);
-    const worldPos = screenToWorld(dprAdjusted.x, dprAdjusted.y, viewportState);
+    const worldPos = screenToWorld(screenX, screenY, viewportState);
 
-    // Interpolate points for smoother strokes at high speeds
-    if (toolState.lastPointerPosition && e.pointerType === 'pen') {
-      const interpolatedPoints = interpolatePoints(
-        toolState.lastPointerPosition,
-        { x: e.clientX, y: e.clientY },
-        rect,
-        viewportState
-      );
-      toolState.accumulatedPoints.push(...interpolatedPoints);
-    } else {
-      toolState.accumulatedPoints.push(worldPos);
+    // DIRECT drawing - no smoothing, instant response
+    if (toolState.lastWorldPosition) {
+      const dx = worldPos.x - toolState.lastWorldPosition.x;
+      const dy = worldPos.y - toolState.lastWorldPosition.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Only interpolate for very large gaps (fast mouse movement)
+      if (distance > HIGHLIGHTER_CONFIG.INTERPOLATION_THRESHOLD) {
+        const steps = Math.min(Math.ceil(distance / 6), HIGHLIGHTER_CONFIG.MAX_INTERPOLATION_STEPS);
+        for (let i = 1; i <= steps; i++) {
+          const t = i / (steps + 1);
+          toolState.accumulatedPoints.push({
+            x: toolState.lastWorldPosition.x + dx * t,
+            y: toolState.lastWorldPosition.y + dy * t
+          });
+        }
+      }
     }
+    
+    // Add current point directly - no smoothing
+    toolState.accumulatedPoints.push(worldPos);
 
+    // Update state
     toolState.lastPointerPosition = { x: e.clientX, y: e.clientY };
+    toolState.lastWorldPosition = worldPos;
+    toolState.lastUpdateTime = performance.now();
 
-    // Schedule batched update
-    toolState.batcher!.scheduleUpdate(() => {
-      if (!toolState.currentStroke || !toolState.drawing) return;
-
-      const store = useWhiteboardStore.getState();
-
-      // Apply fast simplification during drawing
-      const simplified = simplifyPointsByDistance(
-        toolState.accumulatedPoints,
-        HIGHLIGHTER_CONFIG.DISTANCE_THRESHOLD * toolState.dpr
-      );
-
-      // Update stroke with simplified points
-      toolState.currentStroke.points = simplified;
-      toolState.currentStroke.updatedAt = Date.now();
-
-      // Single store update for batched points
-      const newShapes = new Map(store.shapes);
-      newShapes.set(
-        toolState.currentStroke.id,
-        toolState.currentStroke as unknown as WhiteboardShape
-      );
-      useWhiteboardStore.setState({ shapes: newShapes });
-
-      // Update metrics
-      metrics.totalPoints += simplified.length;
-    });
+    // DO NOT update store during drawing - let canvas component handle rendering
+    // Store update happens ONLY on commit (pointer up)
 
     // Update metrics
     const elapsed = performance.now() - startTime;
@@ -394,11 +400,6 @@ export function handleHighlighterPointerUp(
   const startTime = performance.now();
 
   try {
-    // Cancel pending updates
-    if (toolState.batcher) {
-      toolState.batcher.cancel();
-    }
-
     // Release pointer capture
     releasePointer(canvasElement, e.pointerId);
 
@@ -409,7 +410,12 @@ export function handleHighlighterPointerUp(
     toolState.drawing = false;
     toolState.currentStroke = null;
     toolState.accumulatedPoints = [];
+    toolState.smoothedPoints = [];
     toolState.lastPointerPosition = null;
+    toolState.lastWorldPosition = null;
+    toolState.velocityHistory = [];
+    toolState.smoothingBuffer = [];
+    toolState.predictionPoints = [];
 
     // Update metrics
     const elapsed = performance.now() - startTime;
@@ -426,6 +432,7 @@ export function handleHighlighterPointerUp(
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
 
 /**
  * Commits the current stroke with final optimizations
@@ -446,10 +453,10 @@ function commitStroke(): void {
     return;
   }
 
-  // Apply high-quality simplification
+  // Apply final simplification only on commit (not during drawing)
   const simplified = simplifyPoints(
     toolState.accumulatedPoints,
-    HIGHLIGHTER_CONFIG.EPSILON_TOLERANCE * toolState.dpr
+    HIGHLIGHTER_CONFIG.EPSILON_TOLERANCE
   );
 
   // Calculate simplification ratio for metrics
@@ -460,6 +467,8 @@ function commitStroke(): void {
     toolState.currentStroke.metadata.originalPointCount = originalPointCount;
     toolState.currentStroke.metadata.finalPointCount = simplified.length;
     toolState.currentStroke.metadata.simplificationRatio = simplificationRatio;
+    toolState.currentStroke.metadata.avgVelocity = metrics.avgVelocity;
+    toolState.currentStroke.metadata.maxVelocity = metrics.maxVelocity;
   }
 
   // Final update with optimized points
@@ -487,6 +496,8 @@ function commitStroke(): void {
     originalPoints: originalPointCount,
     simplifiedPoints: simplified.length,
     reduction: `${(simplificationRatio * 100).toFixed(1)}%`,
+    avgVelocity: metrics.avgVelocity.toFixed(2),
+    maxVelocity: metrics.maxVelocity.toFixed(2),
   });
 }
 
@@ -553,38 +564,6 @@ function getDeviceType(): 'touch' | 'coarse' | 'fine' {
 }
 
 /**
- * Interpolates points for smoother strokes at high speeds
- */
-function interpolatePoints(
-  lastPos: { x: number; y: number },
-  currentPos: { x: number; y: number },
-  rect: DOMRect,
-  viewportState: ViewportState
-): WhiteboardPoint[] {
-  const distance = Math.hypot(currentPos.x - lastPos.x, currentPos.y - lastPos.y);
-  
-  // Only interpolate if movement is significant
-  if (distance < 5) return [];
-  
-  const steps = Math.min(Math.ceil(distance / 5), 10); // Max 10 interpolated points
-  const points: WhiteboardPoint[] = [];
-  
-  for (let i = 1; i < steps; i++) {
-    const t = i / steps;
-    const x = lastPos.x + (currentPos.x - lastPos.x) * t;
-    const y = lastPos.y + (currentPos.y - lastPos.y) * t;
-    
-    const screenX = x - rect.left;
-    const screenY = y - rect.top;
-    const dprAdjusted = screenToDPRAdjusted(screenX, screenY, toolState.dpr);
-    
-    points.push(screenToWorld(dprAdjusted.x, dprAdjusted.y, viewportState));
-  }
-  
-  return points;
-}
-
-/**
  * Updates performance metrics
  */
 function updateMetrics(operation: string, elapsed: number): void {
@@ -599,6 +578,25 @@ function updateMetrics(operation: string, elapsed: number): void {
 }
 
 // ============================================================================
+// Public API for Canvas Rendering
+// ============================================================================
+
+/**
+ * Gets the current stroke being drawn (for incremental rendering)
+ * Returns null if not currently drawing
+ */
+export function getCurrentHighlighterStroke(): HighlighterAnnotationWithMetadata | null {
+  return toolState.drawing ? toolState.currentStroke : null;
+}
+
+/**
+ * Gets the accumulated points for the current stroke
+ */
+export function getCurrentHighlighterPoints(): WhiteboardPoint[] {
+  return toolState.drawing ? toolState.accumulatedPoints : [];
+}
+
+// ============================================================================
 // Exports for Testing
 // ============================================================================
 
@@ -606,7 +604,6 @@ export const __testing__ = {
   toolState,
   metrics,
   getNormalizedDPR,
-  screenToDPRAdjusted,
   getAdjustedThickness,
   generateStrokeId,
   HIGHLIGHTER_CONFIG,

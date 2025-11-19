@@ -27,7 +27,13 @@ interface DrawingState {
   startPoint: Point | null;
 }
 
-export function WhiteboardCanvasPro() {
+interface WhiteboardCanvasProProps {
+  width?: number;
+  height?: number;
+  canAnnotate?: boolean;
+}
+
+export function WhiteboardCanvasPro({ width, height, canAnnotate = true }: WhiteboardCanvasProProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
   const [drawingState, setDrawingState] = useState<DrawingState>({
@@ -64,14 +70,16 @@ export function WhiteboardCanvasPro() {
     if (!canvas || !bgCanvas) return;
 
     const updateCanvasSize = () => {
-      const rect = canvas.getBoundingClientRect();
+      // Use provided dimensions or fallback to getBoundingClientRect
+      const canvasWidth = width || canvas.getBoundingClientRect().width;
+      const canvasHeight = height || canvas.getBoundingClientRect().height;
       const dpr = window.devicePixelRatio || 1;
       
       // Set actual size in memory for both canvases
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      bgCanvas.width = rect.width * dpr;
-      bgCanvas.height = rect.height * dpr;
+      canvas.width = canvasWidth * dpr;
+      canvas.height = canvasHeight * dpr;
+      bgCanvas.width = canvasWidth * dpr;
+      bgCanvas.height = canvasHeight * dpr;
       
       // Scale for device pixel ratio
       const ctx = canvas.getContext('2d');
@@ -84,31 +92,32 @@ export function WhiteboardCanvasPro() {
         bgCtx.scale(dpr, dpr);
         // Draw white background on the background canvas
         bgCtx.fillStyle = '#ffffff';
-        bgCtx.fillRect(0, 0, rect.width, rect.height);
+        bgCtx.fillRect(0, 0, canvasWidth, canvasHeight);
       }
       
       // Set CSS size
-      canvas.style.width = rect.width + 'px';
-      canvas.style.height = rect.height + 'px';
-      bgCanvas.style.width = rect.width + 'px';
-      bgCanvas.style.height = rect.height + 'px';
+      canvas.style.width = canvasWidth + 'px';
+      canvas.style.height = canvasHeight + 'px';
+      bgCanvas.style.width = canvasWidth + 'px';
+      bgCanvas.style.height = canvasHeight + 'px';
     };
 
     updateCanvasSize();
-    window.addEventListener('resize', updateCanvasSize);
     
-    return () => {
-      window.removeEventListener('resize', updateCanvasSize);
-    };
-  }, []);
-
-  // Redraw canvas when shapes change (but not during drawing)
-  useEffect(() => {
-    // Skip redraw if actively drawing to prevent flickering
-    if (drawingState.isDrawing && (tool === 'pen' || tool === 'highlighter')) {
-      return;
+    // Only listen to resize if no explicit dimensions provided
+    if (!width && !height) {
+      window.addEventListener('resize', updateCanvasSize);
     }
     
+    return () => {
+      if (!width && !height) {
+        window.removeEventListener('resize', updateCanvasSize);
+      }
+    };
+  }, [width, height]);
+
+  // Redraw canvas when shapes change
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
@@ -158,23 +167,33 @@ export function WhiteboardCanvasPro() {
           
         case 'highlighter': {
           const highlighterShape = shape as HighlighterAnnotation;
-          if (highlighterShape.points && highlighterShape.points.length > 1) {
+          if (highlighterShape.points && highlighterShape.points.length > 0) {
             ctx.globalAlpha = 0.3;
             ctx.globalCompositeOperation = 'multiply';
             
             // Use color from gradient
             const gradientColor = highlighterShape.colorGradient?.stops?.[0]?.color || '#FFFF00';
             ctx.strokeStyle = gradientColor;
+            ctx.fillStyle = gradientColor;
             ctx.lineWidth = highlighterShape.thickness;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             
-            ctx.beginPath();
-            ctx.moveTo(highlighterShape.points[0].x, highlighterShape.points[0].y);
-            for (let i = 1; i < highlighterShape.points.length; i++) {
-              ctx.lineTo(highlighterShape.points[i].x, highlighterShape.points[i].y);
+            if (highlighterShape.points.length === 1) {
+              // Single point - draw as circle
+              const point = highlighterShape.points[0];
+              ctx.beginPath();
+              ctx.arc(point.x, point.y, highlighterShape.thickness / 2, 0, 2 * Math.PI);
+              ctx.fill();
+            } else {
+              // Multiple points - draw as stroke
+              ctx.beginPath();
+              ctx.moveTo(highlighterShape.points[0].x, highlighterShape.points[0].y);
+              for (let i = 1; i < highlighterShape.points.length; i++) {
+                ctx.lineTo(highlighterShape.points[i].x, highlighterShape.points[i].y);
+              }
+              ctx.stroke();
             }
-            ctx.stroke();
           }
           break;
         }
@@ -303,52 +322,74 @@ export function WhiteboardCanvasPro() {
     ctx.restore();
   }, [shapes, drawingState.isDrawing, tool]); // Include drawing state to skip during active drawing
 
-  // Incremental drawing for pen and highlighter tools - optimized for performance
+  // Incremental drawing for pen and highlighter tools - RAF-batched for performance
   const [lastDrawnIndex, setLastDrawnIndex] = useState(0);
+  const rafRef = useRef<number | null>(null);
   
   useEffect(() => {
-    if (!drawingState.isDrawing || drawingState.currentPath.length < 2) {
+    const currentPath = drawingState.currentPath;
+    
+    if (!drawingState.isDrawing || currentPath.length < 2) {
       setLastDrawnIndex(0);
+      // Cancel any pending RAF
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       return;
     }
     
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
     // Only draw new segments for pen/highlighter
-    if (tool === 'pen' || tool === 'highlighter') {
+    if (tool !== 'pen' && tool !== 'highlighter') return;
+    
+    // Cancel any existing RAF to avoid double-drawing
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    
+    // Use RAF to batch drawing - only draws once per frame
+    rafRef.current = requestAnimationFrame(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      
+      // Only draw if there are new points
+      if (lastDrawnIndex >= currentPath.length - 1) return;
+      
       ctx.save();
       
       // Ensure we're drawing on top, not replacing
       ctx.globalCompositeOperation = tool === 'highlighter' ? 'multiply' : 'source-over';
-      ctx.globalAlpha = tool === 'highlighter' ? 0.4 : opacity;
+      ctx.globalAlpha = tool === 'highlighter' ? 0.3 : opacity;
       ctx.strokeStyle = color;
-      ctx.lineWidth = tool === 'highlighter' ? size * 4 : size;
+      ctx.lineWidth = tool === 'highlighter' ? size * 3 : size;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       
       // Draw only the new segments
-      if (lastDrawnIndex < drawingState.currentPath.length - 1) {
-        ctx.beginPath();
-        const startIdx = Math.max(0, lastDrawnIndex);
-        ctx.moveTo(
-          drawingState.currentPath[startIdx].x,
-          drawingState.currentPath[startIdx].y
-        );
-        
-        for (let i = startIdx + 1; i < drawingState.currentPath.length; i++) {
-          ctx.lineTo(drawingState.currentPath[i].x, drawingState.currentPath[i].y);
-        }
-        ctx.stroke();
-        
-        setLastDrawnIndex(drawingState.currentPath.length - 1);
-      }
+      ctx.beginPath();
+      const startIdx = Math.max(0, lastDrawnIndex);
+      ctx.moveTo(
+        currentPath[startIdx].x,
+        currentPath[startIdx].y
+      );
       
+      for (let i = startIdx + 1; i < currentPath.length; i++) {
+        ctx.lineTo(currentPath[i].x, currentPath[i].y);
+      }
+      ctx.stroke();
+      
+      setLastDrawnIndex(currentPath.length - 1);
       ctx.restore();
-    }
+    });
+    
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
   }, [drawingState.currentPath, drawingState.isDrawing, tool, color, size, opacity, lastDrawnIndex]);
   
   // Preview for shape tools (rectangle, circle, arrow, line)
@@ -467,22 +508,32 @@ export function WhiteboardCanvasPro() {
         
       case 'highlighter': {
         const highlighterShape = shape as HighlighterAnnotation;
-        if (highlighterShape.points && highlighterShape.points.length > 1) {
+        if (highlighterShape.points && highlighterShape.points.length > 0) {
           ctx.globalAlpha = 0.3;
           ctx.globalCompositeOperation = 'multiply';
           
           const gradientColor = highlighterShape.colorGradient?.stops?.[0]?.color || '#FFFF00';
           ctx.strokeStyle = gradientColor;
+          ctx.fillStyle = gradientColor;
           ctx.lineWidth = highlighterShape.thickness;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           
-          ctx.beginPath();
-          ctx.moveTo(highlighterShape.points[0].x, highlighterShape.points[0].y);
-          for (let i = 1; i < highlighterShape.points.length; i++) {
-            ctx.lineTo(highlighterShape.points[i].x, highlighterShape.points[i].y);
+          if (highlighterShape.points.length === 1) {
+            // Single point - draw as circle
+            const point = highlighterShape.points[0];
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, highlighterShape.thickness / 2, 0, 2 * Math.PI);
+            ctx.fill();
+          } else {
+            // Multiple points - draw as stroke
+            ctx.beginPath();
+            ctx.moveTo(highlighterShape.points[0].x, highlighterShape.points[0].y);
+            for (let i = 1; i < highlighterShape.points.length; i++) {
+              ctx.lineTo(highlighterShape.points[i].x, highlighterShape.points[i].y);
+            }
+            ctx.stroke();
           }
-          ctx.stroke();
         }
         break;
       }
@@ -624,14 +675,27 @@ export function WhiteboardCanvasPro() {
       drawShape(ctx, shape);
     });
     
-    // Draw eraser cursor
+    // Draw eraser cursor - clean solid circle
     ctx.save();
-    ctx.strokeStyle = '#666666';
+    
+    // Outer circle (border)
+    ctx.strokeStyle = '#3b82f6'; // Blue border
     ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
+    ctx.setLineDash([]); // Solid line
     ctx.beginPath();
     ctx.arc(eraserPosition.x, eraserPosition.y, eraserSize, 0, 2 * Math.PI);
     ctx.stroke();
+    
+    // Inner fill (semi-transparent)
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.1)'; // Light blue fill
+    ctx.fill();
+    
+    // Center dot for precision
+    ctx.fillStyle = '#3b82f6';
+    ctx.beginPath();
+    ctx.arc(eraserPosition.x, eraserPosition.y, 2, 0, 2 * Math.PI);
+    ctx.fill();
+    
     ctx.restore();
   }, [tool, eraserPosition, eraserSize, shapes]);
 
@@ -654,6 +718,9 @@ export function WhiteboardCanvasPro() {
   const handleMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     // Skip for navigation/selection tools
     if (tool === 'select' || tool === 'pan' || tool === 'zoom' || tool === 'laser') return;
+    
+    // Check annotation permission
+    if (!canAnnotate) return;
     
     const pos = getMousePos(e);
     
@@ -929,7 +996,7 @@ export function WhiteboardCanvasPro() {
         style={{
           cursor: tool === 'pen' ? 'crosshair' :
                   tool === 'highlighter' ? 'crosshair' :
-                  tool === 'eraser' ? 'grab' :
+                  tool === 'eraser' ? 'none' :
                   tool === 'text' ? 'text' :
                   tool === 'pan' ? 'move' :
                   tool === 'zoom' ? 'zoom-in' :
