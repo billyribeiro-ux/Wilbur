@@ -6,10 +6,14 @@
  * on every render, which was causing infinite mount/unmount cycles downstream
  */
 
-import { useEffect, type FC, type ReactNode } from 'react';
+import { useEffect, useState, type FC, type ReactNode } from 'react';
 import '../icons/fa';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { FluentProvider, webDarkTheme, Spinner, type Theme } from '@fluentui/react-components';
+import { WhiteboardSurface } from '../features/whiteboard/components/WhiteboardSurface';
+import { WhiteboardCanvas } from '../features/whiteboard/components/WhiteboardCanvas';
+import { WhiteboardToolbar } from '../features/whiteboard/components/WhiteboardToolbar';
+import { useWhiteboardStore } from '../features/whiteboard/state/whiteboardStore';
 
 // Removed unused supabase import - authStore.initialize() is single source of truth
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
@@ -110,22 +114,54 @@ const TestTradingRoom: FC = () => {
   );
 };
 
-// Test Whiteboard route wrapper (always active overlay + toolbar)
-const TestWhiteboard: FC = () => (
-  <InjectTestSession>
-    {/* Placeholder for whiteboard testing - harness removed during cleanup */}
-    <div data-testid="whiteboard-test-placeholder">
-      Whiteboard test harness has been removed. Use the main whiteboard in TradingRoom.
-    </div>
-    {/* Fallback (kept) invisible canvas to ensure locator resilience if harness fails extremely early */}
-    <canvas
-      data-testid="whiteboard-canvas-fallback"
-      width={typeof window !== 'undefined' ? window.innerWidth : 800}
-      height={typeof window !== 'undefined' ? window.innerHeight : 600}
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0 }}
-    />
-  </InjectTestSession>
-);
+// Test Whiteboard route wrapper - Microsoft-quality test harness
+const TestWhiteboard: FC = () => {
+  // Get viewport dimensions
+  const [dimensions, setDimensions] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1920,
+    height: typeof window !== 'undefined' ? window.innerHeight : 1080
+  });
+
+  // Expose store for E2E tests
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__WB_STORE__ = useWhiteboardStore;
+    }
+
+    // Handle window resize
+    const handleResize = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return (
+    <InjectTestSession>
+      <div style={{
+        width: '100vw',
+        height: '100vh',
+        position: 'relative',
+        backgroundColor: '#1a1a1a'
+      }}>
+        <WhiteboardSurface
+          width={dimensions.width}
+          height={dimensions.height}
+        >
+          <WhiteboardCanvas
+            width={dimensions.width}
+            height={dimensions.height}
+            canAnnotate={true}
+          />
+          <WhiteboardToolbar />
+        </WhiteboardSurface>
+      </div>
+    </InjectTestSession>
+  );
+};
 
 // 🔥 CRITICAL: AppRoutes component outside App() to prevent re-creation
 const AppRoutes: FC = () => {

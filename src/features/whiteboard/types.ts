@@ -169,6 +169,37 @@ export interface ShapeObject extends WhiteboardShapeBase {
 }
 
 // ============================================================================
+// Configuration Types
+// ============================================================================
+
+export interface WhiteboardConfig {
+  minZoom: number;
+  maxZoom: number;
+  defaultZoom: number;
+  enableGPU: boolean;
+  enableHistory: boolean;
+  maxHistorySize: number;
+  enableCollaboration: boolean;
+  autoSave: boolean;
+  autoSaveInterval: number;
+  renderQuality: 'low' | 'medium' | 'high' | 'auto';
+}
+
+// Default configuration - Microsoft-quality enterprise settings
+export const DEFAULT_WHITEBOARD_CONFIG: WhiteboardConfig = {
+  minZoom: 0.1,
+  maxZoom: 10,
+  defaultZoom: 1,
+  enableGPU: true,
+  enableHistory: true,
+  maxHistorySize: 100,
+  enableCollaboration: true,
+  autoSave: false,
+  autoSaveInterval: 30000, // 30 seconds
+  renderQuality: 'auto',
+};
+
+// ============================================================================
 // Store Types
 // ============================================================================
 
@@ -176,29 +207,29 @@ export interface WhiteboardStore {
   // Canvas state
   shapes: Map<string, WhiteboardShape>;
   viewport: ViewportState;
-  
+
   // Tool state
   activeTool: ToolType;
   color: string;
   size: number;
   opacity: number;
-  
+
   // History
   history: HistoryEntry[];
   historyIndex: number;
-  
+
   // Methods
   saveHistory: (action: string) => void;
   undo: () => void;
   redo: () => void;
-  
+
   // Selection
   selectedShapeIds: Set<string>;
-  
+
   // Performance
   renderQuality: 'low' | 'medium' | 'high' | 'auto';
   enableGPU: boolean;
-  
+
   // Collaboration (optional)
   collaborators?: Map<string, Collaborator>;
   cursorPositions?: Map<string, CursorPosition>;
