@@ -468,58 +468,95 @@ export const getUserRoomRole = async (userId: string, roomId: string): Promise<R
 };
 
 /**
- * Ensure user is registered in room_memberships
- * If user doesn't exist in room, adds them with 'member' role
- * If user already exists, returns existing membership
+ * ENTERPRISE PATTERN: Validate user room membership (Microsoft/Google standard)
+ * NEVER auto-creates - membership must be granted explicitly via invitation
+ * Returns existing membership or undefined if user not authorized
  * 
- * ENTERPRISE PATTERN: Microsoft-grade validation with detailed error reporting
+ * @deprecated Use validateUserRoomMembership for strict validation
  */
 export const ensureUserRoomMembership = async (userId: string, roomId: string): Promise<RoomMembership | undefined> => {
-  try {
-    console.log('[API] 🔐 ensureUserRoomMembership: Validating membership for user', userId, 'in room', roomId);
+  console.warn('[API] ⚠️ ensureUserRoomMembership is deprecated - use validateUserRoomMembership');
+  return validateUserRoomMembership(userId, roomId);
+};
 
-    // First, check if membership already exists
+/**
+ * ENTERPRISE PATTERN: Validate user has room membership (strict validation)
+ * NEVER auto-creates memberships - user must be explicitly invited
+ * Throws error if membership not found (access denied)
+ */
+export const validateUserRoomMembership = async (userId: string, roomId: string): Promise<RoomMembership | undefined> => {
+  try {
+    console.log('[API] 🔐 validateUserRoomMembership: Checking access for user', userId, 'in room', roomId);
+
+    // Check if membership exists
+    const existing = await getUserRoomRole(userId, roomId);
+    
+    if (!existing) {
+      console.error('[API] ❌ validateUserRoomMembership: User not a member of this room');
+      console.error('[API] 🚨 Access denied - user must be invited by room admin');
+      console.error('[API] 🚨 User ID:', userId);
+      console.error('[API] 🚨 Room ID:', roomId);
+      return undefined;
+    }
+
+    console.log('[API] ✅ validateUserRoomMembership: Access granted - Role:', existing.role);
+    return existing;
+    
+  } catch (error) {
+    console.error('[API] ❌ validateUserRoomMembership: FATAL ERROR:', error);
+    console.error('[API] 🚨 User will NOT have room permissions');
+    return undefined;
+  }
+};
+
+/**
+ * ENTERPRISE PATTERN: Create room membership via explicit invitation
+ * Only admins can invite users to rooms
+ */
+export const createRoomMembership = async (
+  roomId: string, 
+  userId: string, 
+  role: 'admin' | 'member' = 'member',
+  invitedBy: string
+): Promise<RoomMembership | undefined> => {
+  try {
+    console.log('[API] 🔐 createRoomMembership: Admin', invitedBy, 'inviting user', userId, 'to room', roomId);
+
+    // Validate inviter is admin
+    const inviterMembership = await getUserRoomRole(invitedBy, roomId);
+    if (!inviterMembership || inviterMembership.role !== 'admin') {
+      console.error('[API] ❌ createRoomMembership: Inviter is not admin');
+      throw new Error('Only room admins can invite users');
+    }
+
+    // Check if user already has membership
     const existing = await getUserRoomRole(userId, roomId);
     if (existing) {
-      console.log('[API] ✅ ensureUserRoomMembership: User already registered with role:', existing.role);
+      console.log('[API] ⚠️ createRoomMembership: User already a member');
       return existing;
     }
 
-    console.log('[API] ⚠️ ensureUserRoomMembership: No existing membership found - creating new member record');
-
-    // User not registered - add them as 'member'
+    // Create membership
     const { data, error } = await supabase
       .from('room_memberships' as const)
       .insert({
         user_id: userId,
         room_id: roomId,
-        role: 'member'
+        role
       })
       .select()
       .single();
 
     if (error) {
-      console.error('[API] ❌ ensureUserRoomMembership: FAILED to create membership:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code,
-        userId,
-        roomId
-      });
-      console.error('[API] 🚨 This may be caused by:');
-      console.error('[API]    1. RLS policy blocking INSERT on room_memberships');
-      console.error('[API]    2. Missing foreign key (user or room does not exist)');
-      console.error('[API]    3. Network/database connectivity issue');
-      return undefined;
+      console.error('[API] ❌ createRoomMembership: Failed to create membership:', error);
+      throw error;
     }
 
-    console.log('[API] ✅ ensureUserRoomMembership: User registered as member');
-
+    console.log('[API] ✅ createRoomMembership: User invited successfully');
     return data as RoomMembership;
+    
   } catch (error) {
-    console.error('[API] ❌ ensureUserRoomMembership: FATAL ERROR:', error);
-    console.error('[API] 🚨 User will NOT have room permissions until this is resolved');
+    console.error('[API] ❌ createRoomMembership: FATAL ERROR:', error);
     return undefined;
   }
 };

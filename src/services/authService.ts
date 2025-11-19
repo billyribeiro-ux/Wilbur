@@ -118,9 +118,16 @@ class AuthService {
 
       if (error) throw error;
 
-      // Added: 2025-01-24 - Sync user profile after successful sign in
+      // ENTERPRISE PATTERN: Validate user profile exists (no auto-creation)
       if (data.user) {
-        await this.syncUserProfile(data.user);
+        await this.validateUserProfile(data.user);
+      }
+
+      // ENTERPRISE PATTERN: Enforce email verification
+      if (data.user && !data.user.email_confirmed_at) {
+        console.error('[AuthService] ❌ Email not verified');
+        await supabase.auth.signOut();
+        throw new Error('Please verify your email before logging in. Check your inbox and spam folder.');
       }
 
       return { user: data.user, session: data.session, error: undefined };
@@ -205,30 +212,44 @@ class AuthService {
     }
   }
 
-  // Added: 2025-01-24 - Sync auth user with profile table
-  private async syncUserProfile(authUser: User): Promise<void> {
+  /**
+   * ENTERPRISE PATTERN: Validate user profile exists (Microsoft/Google standard)
+   * NEVER auto-creates - registration must be explicit
+   * Throws error if user record missing (incomplete registration)
+   */
+  private async validateUserProfile(authUser: User): Promise<void> {
     try {
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error } = await supabase
         .from('users')
-        .select('id')
+        .select('id, email, role, display_name')
         .eq('id', authUser.id)
         .single();
 
-      if (!existingProfile) {
-        await this.createUserProfile(authUser);
-      } else {
-        // Added: 2025-01-24 - Update last activity timestamp
-        await supabase
-          .from('users')
-          .update({ updated_at: new Date().toISOString() })
-          .eq('id', authUser.id);
+      if (error || !existingProfile) {
+        console.error('[AuthService] ❌ User record not found in database');
+        console.error('[AuthService] 🚨 This indicates incomplete registration');
+        console.error('[AuthService] 🚨 User exists in auth.users but not in public.users');
+        throw new Error('Account not found. Please complete registration or contact support.');
       }
+
+      console.log('[AuthService] ✅ User profile validated:', existingProfile.email);
+      
+      // Update last activity timestamp only
+      await supabase
+        .from('users')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', authUser.id);
+        
     } catch (error) {
-      reportError(error instanceof Error ? error : new Error(String(error)), ErrorSeverity.MEDIUM, {
+      if (error instanceof Error && error.message.includes('Account not found')) {
+        throw error; // Re-throw validation errors
+      }
+      reportError(error instanceof Error ? error : new Error(String(error)), ErrorSeverity.HIGH, {
         component: 'AuthService',
-        action: 'syncUserProfile',
+        action: 'validateUserProfile',
         userId: authUser.id
       });
+      throw new Error('Failed to validate user account. Please try again.');
     }
   }
 

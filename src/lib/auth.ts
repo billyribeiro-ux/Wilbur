@@ -75,12 +75,25 @@ export async function registerUser(input: RegisterUserInput): Promise<AuthResult
       });
 
     if (userError) {
-      console.error('[registerUser] User creation error:', userError);
-      // Note: User is already created in auth, so we log but don't fail completely
-      // The user can still login, and we can create the user record later if needed
-    } else {
-      console.log('[registerUser] User record created successfully');
+      console.error('[registerUser] ❌ User creation error:', userError);
+      console.error('[registerUser] 🚨 CRITICAL: Registration incomplete - user exists in auth but not in database');
+      console.error('[registerUser] 🚨 User will NOT be able to log in until this is fixed');
+      
+      // ENTERPRISE PATTERN: Rollback auth user creation if database insert fails
+      try {
+        await supabase.auth.admin.deleteUser(data.user.id);
+        console.log('[registerUser] ✅ Rolled back auth user creation');
+      } catch (rollbackError) {
+        console.error('[registerUser] ❌ Failed to rollback auth user:', rollbackError);
+      }
+      
+      return {
+        success: false,
+        error: 'Registration failed. Please try again or contact support.',
+      };
     }
+    
+    console.log('[registerUser] ✅ User record created successfully');
 
     console.log('[registerUser] Registration successful for:', input.email);
     return {

@@ -98,6 +98,35 @@ export const useAuthStore = create<AuthState>((set: (state: Partial<AuthState> |
         return { error };
       }
 
+      // ENTERPRISE PATTERN: Enforce email verification (Microsoft/Google standard)
+      if (data.user && !data.user.email_confirmed_at) {
+        console.error('[AuthStore] ❌ Email not verified');
+        await supabase.auth.signOut();
+        return { 
+          error: new Error('Please verify your email before logging in. Check your inbox and spam folder.') 
+        };
+      }
+
+      // ENTERPRISE PATTERN: Validate user record exists in database
+      if (data.user) {
+        const { data: userRecord, error: userError } = await supabase
+          .from('users')
+          .select('id, email, role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (userError || !userRecord) {
+          console.error('[AuthStore] ❌ User record not found in database');
+          console.error('[AuthStore] 🚨 User exists in auth but not in public.users table');
+          await supabase.auth.signOut();
+          return { 
+            error: new Error('Account not found. Please complete registration or contact support.') 
+          };
+        }
+
+        console.log('[AuthStore] ✅ User validated:', userRecord.email, '- Role:', userRecord.role);
+      }
+
       if (data.session) {
         set({
           user: data.user,
