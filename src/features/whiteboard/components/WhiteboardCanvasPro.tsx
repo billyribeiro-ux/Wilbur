@@ -29,6 +29,7 @@ interface DrawingState {
 
 export function WhiteboardCanvasPro() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
   const [drawingState, setDrawingState] = useState<DrawingState>({
     isDrawing: false,
     currentPath: [],
@@ -56,18 +57,21 @@ export function WhiteboardCanvasPro() {
   const fontWeight = useWhiteboardStore((s) => s.fontWeight);
   const fontStyle = useWhiteboardStore((s) => s.fontStyle);
 
-  // Setup canvas
+  // Setup canvas and background
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const bgCanvas = backgroundCanvasRef.current;
+    if (!canvas || !bgCanvas) return;
 
     const updateCanvasSize = () => {
       const rect = canvas.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
       
-      // Set actual size in memory
+      // Set actual size in memory for both canvases
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
+      bgCanvas.width = rect.width * dpr;
+      bgCanvas.height = rect.height * dpr;
       
       // Scale for device pixel ratio
       const ctx = canvas.getContext('2d');
@@ -75,9 +79,19 @@ export function WhiteboardCanvasPro() {
         ctx.scale(dpr, dpr);
       }
       
+      const bgCtx = bgCanvas.getContext('2d');
+      if (bgCtx) {
+        bgCtx.scale(dpr, dpr);
+        // Draw white background on the background canvas
+        bgCtx.fillStyle = '#ffffff';
+        bgCtx.fillRect(0, 0, rect.width, rect.height);
+      }
+      
       // Set CSS size
       canvas.style.width = rect.width + 'px';
       canvas.style.height = rect.height + 'px';
+      bgCanvas.style.width = rect.width + 'px';
+      bgCanvas.style.height = rect.height + 'px';
     };
 
     updateCanvasSize();
@@ -112,11 +126,8 @@ export function WhiteboardCanvasPro() {
     // Reset to default composite operation first
     ctx.globalCompositeOperation = 'source-over';
     
-    // Set white background ONLY if no shapes exist
-    if (shapes.size === 0) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, rect.width, rect.height);
-    }
+    // Never set a background - keep canvas transparent
+    // The background should be handled by CSS or a separate layer
 
     // Draw all shapes
     shapes.forEach((shape) => {
@@ -359,11 +370,9 @@ export function WhiteboardCanvasPro() {
     // Clear with proper dimensions
     ctx.clearRect(0, 0, rect.width * dpr, rect.height * dpr);
     
-    // Only set background if no shapes
-    if (shapes.size === 0) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, rect.width, rect.height);
-    }
+    // Never set a background - keep canvas transparent
+    // Clear with proper dimensions
+    ctx.clearRect(0, 0, rect.width * dpr, rect.height * dpr);
     
     // Redraw existing shapes
     shapes.forEach((shape) => {
@@ -609,12 +618,6 @@ export function WhiteboardCanvasPro() {
     
     // Clear with proper dimensions
     ctx.clearRect(0, 0, rect.width * dpr, rect.height * dpr);
-    
-    // Only set background if no shapes
-    if (shapes.size === 0) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, rect.width, rect.height);
-    }
     
     // Redraw all shapes
     shapes.forEach((shape) => {
@@ -912,33 +915,42 @@ export function WhiteboardCanvasPro() {
   }, [undo, redo, clearShapes]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full touch-none"
-      style={{
-        cursor: tool === 'pen' ? 'crosshair' :
-                tool === 'highlighter' ? 'crosshair' :
-                tool === 'eraser' ? 'grab' :
-                tool === 'text' ? 'text' :
-                tool === 'pan' ? 'move' :
-                tool === 'zoom' ? 'zoom-in' :
-                tool === 'select' ? 'default' :
-                tool === 'rectangle' ? 'crosshair' :
-                tool === 'circle' ? 'crosshair' :
-                tool === 'arrow' ? 'crosshair' :
-                tool === 'line' ? 'crosshair' :
-                tool === 'emoji' ? 'copy' :
-                tool === 'laser' ? 'pointer' :
-                'crosshair'
-      }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-      onTouchStart={handleMouseDown}
-      onTouchMove={handleMouseMove}
-      onTouchEnd={handleMouseUp}
-      data-testid="whiteboard-canvas"
-    />
+    <>
+      {/* Background canvas - always white */}
+      <canvas
+        ref={backgroundCanvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ pointerEvents: 'none' }}
+      />
+      {/* Drawing canvas - transparent, on top */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full touch-none"
+        style={{
+          cursor: tool === 'pen' ? 'crosshair' :
+                  tool === 'highlighter' ? 'crosshair' :
+                  tool === 'eraser' ? 'grab' :
+                  tool === 'text' ? 'text' :
+                  tool === 'pan' ? 'move' :
+                  tool === 'zoom' ? 'zoom-in' :
+                  tool === 'select' ? 'default' :
+                  tool === 'rectangle' ? 'crosshair' :
+                  tool === 'circle' ? 'crosshair' :
+                  tool === 'arrow' ? 'crosshair' :
+                  tool === 'line' ? 'crosshair' :
+                  tool === 'emoji' ? 'copy' :
+                  tool === 'laser' ? 'pointer' :
+                  'crosshair'
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onTouchStart={handleMouseDown}
+        onTouchMove={handleMouseMove}
+        onTouchEnd={handleMouseUp}
+        data-testid="whiteboard-canvas"
+      />
+    </>
   );
 }

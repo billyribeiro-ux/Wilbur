@@ -84,6 +84,7 @@ interface WhiteboardCanvasProps {
 
 export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const backgroundCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const isPanningRef = useRef(false);
   const lastPanPointRef = useRef({ x: 0, y: 0 });
@@ -108,17 +109,32 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
    */
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const bgCanvas = backgroundCanvasRef.current;
+    if (!canvas || !bgCanvas) return;
     
     const dpr = window.devicePixelRatio || 1;
     
-    // Set internal size (device pixels)
+    // Set internal size (device pixels) for both canvases
     canvas.width = Math.floor(width * dpr);
     canvas.height = Math.floor(height * dpr);
+    bgCanvas.width = Math.floor(width * dpr);
+    bgCanvas.height = Math.floor(height * dpr);
     
-    // Set CSS size
+    // Set CSS size for both canvases
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
+    bgCanvas.style.width = `${width}px`;
+    bgCanvas.style.height = `${height}px`;
+    
+    // Draw white background on background canvas
+    const bgCtx = bgCanvas.getContext('2d');
+    if (bgCtx) {
+      bgCtx.save();
+      bgCtx.scale(dpr, dpr);
+      bgCtx.fillStyle = '#ffffff';
+      bgCtx.fillRect(0, 0, width, height);
+      bgCtx.restore();
+    }
     
     console.log(`[Canvas] Setup: ${width}x${height} CSS, ${canvas.width}x${canvas.height} device pixels, DPR: ${dpr}`);
   }, [width, height]);
@@ -142,7 +158,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
         case 'circle': deactivateCircleTool(); break;
         case 'arrow': deactivateArrowTool(); break;
         case 'text': deactivateTextTool(); break;
-        case 'stamp': deactivateEmojiTool(); break;
+        case 'emoji': deactivateEmojiTool(); break;
       }
     }
     
@@ -157,8 +173,8 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
       case 'circle': activateCircleTool(canvas); break;
       case 'arrow': activateArrowTool(canvas); break;
       case 'text': activateTextTool(canvas); break;
-      case 'stamp': activateEmojiTool(); break;
-      case 'hand': canvas.style.cursor = 'grab'; break;
+      case 'emoji': activateEmojiTool(); break;
+      case 'pan': canvas.style.cursor = 'grab'; break;
       default: canvas.style.cursor = 'default';
     }
     
@@ -175,11 +191,10 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Clear canvas (device pixels)
+    // Clear canvas (device pixels) - transparent, not white!
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
     
     // Apply viewport transform
@@ -219,8 +234,8 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // Hand tool (always available)
-    if (tool === 'hand') {
+    // Pan tool (always available)
+    if (tool === 'pan') {
       isPanningRef.current = true;
       lastPanPointRef.current = { x: e.clientX, y: e.clientY };
       canvas.setPointerCapture(e.pointerId);
@@ -263,7 +278,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
       case 'text':
         handled = handleTextPointerDown(nativeEvent, canvas, viewportState);
         break;
-      case 'stamp':
+      case 'emoji':
         handled = handleEmojiPointerDown(nativeEvent, canvas, viewportState);
         break;
     }
@@ -273,7 +288,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     if (handled) {
       e.preventDefault();
     }
-  }, [tool, canAnnotate, viewport]);
+  }, [tool, canAnnotate, viewportState]);
   
   /**
    * Handle pointer move
@@ -282,8 +297,8 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // Hand tool panning
-    if (tool === 'hand' && isPanningRef.current) {
+    // Pan tool panning
+    if (tool === 'pan' && isPanningRef.current) {
       const dx = (e.clientX - lastPanPointRef.current.x) / width;
       const dy = (e.clientY - lastPanPointRef.current.y) / height;
       
@@ -323,7 +338,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
       case 'text':
         handled = handleTextPointerMove(nativeEvent, canvas, viewportState);
         break;
-      case 'stamp':
+      case 'emoji':
         handled = handleEmojiPointerMove(nativeEvent, canvas, viewportState);
         break;
     }
@@ -331,7 +346,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     if (handled) {
       e.preventDefault();
     }
-  }, [tool, canAnnotate, viewport, width, height, setPan]);
+  }, [tool, canAnnotate, viewport, width, height, setPan, viewportState]);
   
   /**
    * Handle pointer up
@@ -340,8 +355,8 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // Hand tool
-    if (tool === 'hand') {
+    // Pan tool
+    if (tool === 'pan') {
       isPanningRef.current = false;
       canvas.releasePointerCapture(e.pointerId);
       canvas.style.cursor = 'grab';
@@ -379,7 +394,7 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
       case 'text':
         handled = handleTextPointerUp(nativeEvent, canvas);
         break;
-      case 'stamp':
+      case 'emoji':
         handled = handleEmojiPointerUp(nativeEvent, canvas);
         break;
     }
@@ -436,22 +451,31 @@ export function WhiteboardCanvas({ width, height, canAnnotate }: WhiteboardCanva
   }, [tool]);
   
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 touch-none"
-      style={{
-        cursor: tool === 'hand' ? 'grab' :
-                tool === 'eraser' ? 'cell' :
-                tool === 'text' ? 'text' :
-                tool === 'stamp' ? 'copy' :
-                'crosshair'
-      }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onWheel={handleWheel}
-      data-testid="whiteboard-canvas"
-    />
+    <>
+      {/* Background canvas - always white */}
+      <canvas
+        ref={backgroundCanvasRef}
+        className="absolute inset-0"
+        style={{ pointerEvents: 'none' }}
+      />
+      {/* Drawing canvas - transparent, on top */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 touch-none"
+        style={{
+          cursor: tool === 'pan' ? 'grab' :
+                  tool === 'eraser' ? 'cell' :
+                  tool === 'text' ? 'text' :
+                  tool === 'emoji' ? 'copy' :
+                  'crosshair'
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onWheel={handleWheel}
+        data-testid="whiteboard-canvas"
+      />
+    </>
   );
 }
