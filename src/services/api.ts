@@ -471,21 +471,21 @@ export const getUserRoomRole = async (userId: string, roomId: string): Promise<R
  * Ensure user is registered in room_memberships
  * If user doesn't exist in room, adds them with 'member' role
  * If user already exists, returns existing membership
+ * 
+ * ENTERPRISE PATTERN: Microsoft-grade validation with detailed error reporting
  */
 export const ensureUserRoomMembership = async (userId: string, roomId: string): Promise<RoomMembership | undefined> => {
   try {
-    if (import.meta.env.MODE === 'development') {
-      console.debug('[API] ensureUserRoomMembership: Ensuring user', userId, 'is registered in room', roomId);
-    }
+    console.log('[API] 🔐 ensureUserRoomMembership: Validating membership for user', userId, 'in room', roomId);
 
     // First, check if membership already exists
     const existing = await getUserRoomRole(userId, roomId);
     if (existing) {
-      if (import.meta.env.MODE === 'development') {
-        console.debug('[API] ensureUserRoomMembership: User already registered with role', existing.role);
-      }
+      console.log('[API] ✅ ensureUserRoomMembership: User already registered with role:', existing.role);
       return existing;
     }
+
+    console.log('[API] ⚠️ ensureUserRoomMembership: No existing membership found - creating new member record');
 
     // User not registered - add them as 'member'
     const { data, error } = await supabase
@@ -499,22 +499,27 @@ export const ensureUserRoomMembership = async (userId: string, roomId: string): 
       .single();
 
     if (error) {
-      console.error('[API] ensureUserRoomMembership: Failed to create membership:', {
+      console.error('[API] ❌ ensureUserRoomMembership: FAILED to create membership:', {
         message: error.message,
         details: error.details,
         hint: error.hint,
-        code: error.code
+        code: error.code,
+        userId,
+        roomId
       });
+      console.error('[API] 🚨 This may be caused by:');
+      console.error('[API]    1. RLS policy blocking INSERT on room_memberships');
+      console.error('[API]    2. Missing foreign key (user or room does not exist)');
+      console.error('[API]    3. Network/database connectivity issue');
       return undefined;
     }
 
-    if (import.meta.env.MODE === 'development') {
-      console.debug('[API] ensureUserRoomMembership: User registered as member');
-    }
+    console.log('[API] ✅ ensureUserRoomMembership: User registered as member');
 
-  return data as RoomMembership;
+    return data as RoomMembership;
   } catch (error) {
-    console.error('[API] ensureUserRoomMembership: Fatal error:', error);
+    console.error('[API] ❌ ensureUserRoomMembership: FATAL ERROR:', error);
+    console.error('[API] 🚨 User will NOT have room permissions until this is resolved');
     return undefined;
   }
 };

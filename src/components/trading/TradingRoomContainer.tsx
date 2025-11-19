@@ -173,13 +173,25 @@ export function TradingRoomContainer({
       try {
         setIsRefreshing(true);
 
-        // Ensure membership and get the role
+        // ENTERPRISE PATTERN: Validate membership with Supabase before granting permissions
+        console.log('[TradingRoom] 🔐 Validating user membership and role...');
         const membership = await ensureUserRoomMembership(user.id, room.id);
         if (cancelled) return;
 
-        // Set the membership in the store so canManageRoom works
+        // CRITICAL: Set the membership in the store so canManageRoom works
         if (membership) {
+          console.log('[TradingRoom] ✅ Membership validated - Role:', membership.role);
           setMembership(membership);
+        } else {
+          console.error('[TradingRoom] ❌ MEMBERSHIP VALIDATION FAILED');
+          console.error('[TradingRoom] 🚨 User will NOT have admin/management permissions');
+          console.error('[TradingRoom] 🚨 Check:');
+          console.error('[TradingRoom]    1. RLS policies on room_memberships table');
+          console.error('[TradingRoom]    2. User exists in database');
+          console.error('[TradingRoom]    3. Room exists in database');
+          console.error('[TradingRoom]    4. Network connectivity to Supabase');
+          // Still set undefined to prevent stale data
+          setMembership(undefined);
         }
 
         setCurrentRoom(room);
