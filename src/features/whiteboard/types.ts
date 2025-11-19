@@ -22,6 +22,15 @@ export interface ViewportState {
   scale: number;
   rotation?: number;
   dpr?: number; // Device pixel ratio at time of viewport capture
+  width?: number; // Canvas width for coordinate transformation
+  height?: number; // Canvas height for coordinate transformation
+}
+
+// Viewport transform used by the whiteboard store
+export interface ViewportTransform {
+  panX: number;
+  panY: number;
+  zoom: number;
 }
 
 // ============================================================================

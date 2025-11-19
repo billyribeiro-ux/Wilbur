@@ -30,18 +30,23 @@ export type { ViewportTransform };
 export function screenToWorld(
   screenX: number,
   screenY: number,
-  viewport: ViewportState
+  viewport: ViewportState | any
 ): WhiteboardPoint {
-  const { panX, panY, zoom, width, height } = viewport;
-  
+  // Handle both ViewportState (x,y,scale) and ViewportTransform (panX,panY,zoom)
+  const panX = 'panX' in viewport ? viewport.panX : viewport.x || 0;
+  const panY = 'panY' in viewport ? viewport.panY : viewport.y || 0;
+  const zoom = 'zoom' in viewport ? viewport.zoom : viewport.scale || 1;
+  const width = viewport.width || 1920;
+  const height = viewport.height || 1080;
+
   // Normalize screen coordinates to 0-1 range
   const normalizedX = screenX / width;
   const normalizedY = screenY / height;
-  
+
   // Apply inverse viewport transform
   const worldX = (normalizedX - panX) / zoom;
   const worldY = (normalizedY - panY) / zoom;
-  
+
   return { x: worldX, y: worldY };
 }
 
@@ -53,18 +58,23 @@ export function screenToWorld(
  */
 export function worldToScreen(
   point: WhiteboardPoint,
-  viewport: ViewportState
+  viewport: ViewportState | any
 ): { x: number; y: number } {
-  const { panX, panY, zoom, width, height } = viewport;
-  
+  // Handle both ViewportState (x,y,scale) and ViewportTransform (panX,panY,zoom)
+  const panX = 'panX' in viewport ? viewport.panX : viewport.x || 0;
+  const panY = 'panY' in viewport ? viewport.panY : viewport.y || 0;
+  const zoom = 'zoom' in viewport ? viewport.zoom : viewport.scale || 1;
+  const width = viewport.width || 1920;
+  const height = viewport.height || 1080;
+
   // Apply viewport transform
   const normalizedX = point.x * zoom + panX;
   const normalizedY = point.y * zoom + panY;
-  
+
   // Convert to CSS pixels
   const screenX = normalizedX * width;
   const screenY = normalizedY * height;
-  
+
   return { x: screenX, y: screenY };
 }
 
@@ -79,9 +89,14 @@ export function worldToScreen(
  */
 export function applyViewportTransform(
   ctx: CanvasRenderingContext2D,
-  viewport: ViewportState
+  viewport: ViewportState | any
 ): void {
-  const { panX, panY, zoom, width, height } = viewport;
+  // Handle both ViewportState (x,y,scale) and ViewportTransform (panX,panY,zoom)
+  const panX = 'panX' in viewport ? viewport.panX : viewport.x || 0;
+  const panY = 'panY' in viewport ? viewport.panY : viewport.y || 0;
+  const zoom = 'zoom' in viewport ? viewport.zoom : viewport.scale || 1;
+  const width = viewport.width || 1920;
+  const height = viewport.height || 1080;
   const dpr = getSystemDPR();
   
   // Build transform matrix: Device = DPR * CSS * Viewport * World
