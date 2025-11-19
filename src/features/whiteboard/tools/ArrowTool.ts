@@ -11,7 +11,12 @@ import { useWhiteboardStore } from '../state/whiteboardStore';
 import { screenToWorld } from '../utils/transform';
 import { getPointerInCanvas } from '../utils/pointer';
 import { pointerBatcher, viewportCache, toViewportState } from '../../../utils/performance';
-import type { ViewportTransform, WhiteboardPoint, WhiteboardAnnotation } from '../types';
+import type {
+  ViewportTransform,
+  WhiteboardPoint,
+  ShapeObject,
+} from '../types';
+import { hasPoints } from '../types';
 
 const __BROWSER__ = typeof window !== 'undefined' && typeof document !== 'undefined';
 
@@ -112,16 +117,18 @@ export function handleArrowPointerDown(
 
   const now = Date.now();
 
-  const newShape: WhiteboardAnnotation = {
+  const newShape: ShapeObject = {
     id,
     type: 'arrow',
-    color,
-    size,
+    x: worldPoint.x,
+    y: worldPoint.y,
+    scale: 1,
+    rotation: 0,
     opacity,
-    lineStyle: 'solid',
-    points: [worldPoint, worldPoint], // [start, end]
-    timestamp: now,
     locked: false,
+    points: [worldPoint, worldPoint], // [start, end]
+    stroke: color,
+    strokeWidth: size,
     createdAt: now,
     updatedAt: now,
   };
@@ -144,7 +151,7 @@ export function handleArrowPointerMove(
 
   const store = useWhiteboardStore.getState();
   const shape = store.shapes.get(toolState.currentShapeId);
-  if (!shape || !shape.points || shape.points.length < 1) return false;
+  if (!shape || !hasPoints(shape) || !shape.points || shape.points.length < 1) return false;
 
   // Use cached viewport - MASSIVE performance win!
   const { viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
@@ -173,7 +180,7 @@ export function handleArrowPointerMove(
 
     const currentStore = useWhiteboardStore.getState();
     const currentShape = currentStore.shapes.get(toolState.currentShapeId);
-    if (!currentShape || !currentShape.points) return;
+    if (!currentShape || !hasPoints(currentShape) || !currentShape.points) return;
 
     currentStore.updateShape(toolState.currentShapeId, {
       points: [currentShape.points[0], end],
