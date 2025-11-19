@@ -91,9 +91,9 @@ export function usePointerDrawing(
         updatedAt: now,
       };
 
-      if (tool === 'highlighter') {
-        newShape.gradient = createDefaultHighlighterGradient(color);
-        newShape.composite = 'multiply';
+      if (tool === 'highlighter' && 'gradient' in newShape && 'composite' in newShape) {
+        (newShape as any).gradient = createDefaultHighlighterGradient(color);
+        (newShape as any).composite = 'multiply';
       }
 
       // Dev/test-only breadcrumbs (safe no-op in prod)
@@ -123,10 +123,10 @@ export function usePointerDrawing(
 
       const { shapes } = useWhiteboardStore.getState();
       const shape = shapes.get(currentShapeId.current);
-      if (!shape || !shape.points || shape.points.length < 1) return;
+      if (!shape || !('points' in shape) || !(shape as any).points || (shape as any).points.length < 1) return;
 
       // Continuous freehand: append points
-      const newPoints = [...shape.points, worldPoint];
+      const newPoints = [...(shape as any).points, worldPoint];
 
       updateShape(currentShapeId.current, {
         points: newPoints,

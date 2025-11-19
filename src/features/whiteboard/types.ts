@@ -22,6 +22,9 @@ export interface ViewportState {
   scale: number;
   rotation?: number;
   dpr?: number; // Device pixel ratio at time of viewport capture
+  zoom?: number; // Alias for scale (for compatibility)
+  width?: number; // Canvas width
+  height?: number; // Canvas height
 }
 
 export interface ViewportTransform {
@@ -130,6 +133,7 @@ export type WhiteboardShape =
   | WhiteboardAnnotation
   | TextShape
   | ImageShape
+  | EmojiObject
   | ShapeObject;
 
 // ============================================================================
@@ -162,6 +166,8 @@ export interface EmojiObject extends WhiteboardShapeBase {
   emoji: string;
   size: number;
   native?: boolean;
+  zIndex?: number; // Z-index for layering
+  glyph?: string; // Alternative emoji representation
 }
 
 export interface ImageShape extends WhiteboardShapeBase {
@@ -208,6 +214,7 @@ export interface WhiteboardStore {
   
   // Methods
   saveHistory: (action: string) => void;
+  pushHistory: (action: string) => void; // Alias for saveHistory
   undo: () => void;
   redo: () => void;
   
@@ -290,6 +297,7 @@ export interface RemoteCursor {
   color: string;
   timestamp: number;
   tool?: WhiteboardTool;
+  position?: { x: number; y: number }; // Alternative position format for compatibility
 }
 
 export interface Collaborator {
@@ -338,6 +346,9 @@ export interface WhiteboardEvent {
   type: string;
   timestamp: number;
   data: any;
+  payload?: any; // Event payload for collaboration
+  userId?: string; // User who triggered the event
+  roomId?: string; // Room where event occurred
 }
 
 export interface PointerEventData {
@@ -421,3 +432,64 @@ export type RequireAtLeastOne<T, Keys extends keyof T = keyof T> =
 export type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
 };
+
+// ============================================================================
+// Type Guard Functions
+// ============================================================================
+
+/**
+ * Type guard to check if a shape has points property
+ */
+export function hasPoints(
+  shape: WhiteboardShape
+): shape is PenAnnotation | HighlighterAnnotation | EraserAnnotation | ShapeObject {
+  return 'points' in shape && Array.isArray((shape as any).points);
+}
+
+/**
+ * Type guard to check if a shape is a highlighter annotation
+ */
+export function isHighlighterAnnotation(
+  shape: WhiteboardShape
+): shape is HighlighterAnnotation {
+  return shape.type === 'highlighter';
+}
+
+/**
+ * Type guard to check if a shape has gradient property
+ */
+export function hasGradient(
+  shape: WhiteboardShape
+): shape is HighlighterAnnotation {
+  return isHighlighterAnnotation(shape);
+}
+
+/**
+ * Type guard to check if a shape has composite property
+ */
+export function hasComposite(
+  shape: WhiteboardShape
+): shape is HighlighterAnnotation {
+  return isHighlighterAnnotation(shape);
+}
+
+/**
+ * Type guard to check if a shape is a text shape
+ */
+export function isTextShape(shape: WhiteboardShape): shape is TextShape {
+  return shape.type === 'text';
+}
+
+/**
+ * Type guard to check if a shape is an emoji object
+ */
+export function isEmojiObject(shape: WhiteboardShape): shape is EmojiObject {
+  return shape.type === 'emoji';
+}
+
+/**
+ * Type guard to check if a shape is an image shape
+ */
+export function isImageShape(shape: WhiteboardShape): shape is ImageShape {
+  return shape.type === 'image';
+}
