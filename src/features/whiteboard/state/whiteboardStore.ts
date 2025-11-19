@@ -10,7 +10,11 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { enableMapSet } from 'immer';
 import { devtools } from 'zustand/middleware';
+
+// Enable Immer support for Map and Set data structures
+enableMapSet();
 import type {
   WhiteboardTool,
   WhiteboardShape,
@@ -414,7 +418,9 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           set((state) => {
             const shape = state.shapes.get(id);
             if (shape) {
-              state.shapes.set(id, { ...shape, ...updates, updatedAt: Date.now() });
+              // Type-safe update that preserves the shape type
+              const updatedShape = { ...shape, ...updates, updatedAt: Date.now() } as WhiteboardShape;
+              state.shapes.set(id, updatedShape);
             }
           });
         },
@@ -424,7 +430,9 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
             updates.forEach((update, id) => {
               const shape = state.shapes.get(id);
               if (shape) {
-                state.shapes.set(id, { ...shape, ...update, updatedAt: Date.now() });
+                // Type-safe update that preserves the shape type
+                const updatedShape = { ...shape, ...update, updatedAt: Date.now() } as WhiteboardShape;
+                state.shapes.set(id, updatedShape);
               }
             });
           });
@@ -670,10 +678,32 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           let maxX = -Infinity, maxY = -Infinity;
           
           shapes.forEach(shape => {
-            minX = Math.min(minX, shape.x);
-            minY = Math.min(minY, shape.y);
-            maxX = Math.max(maxX, shape.x + (shape.width || 100));
-            maxY = Math.max(maxY, shape.y + (shape.height || 100));
+            // Get bounds based on shape type
+            let bounds = { x: shape.x, y: shape.y, width: 100, height: 100 };
+            
+            if ('width' in shape && 'height' in shape) {
+              bounds.width = shape.width as number;
+              bounds.height = shape.height as number;
+            } else if ('points' in shape && Array.isArray(shape.points)) {
+              // For strokes, calculate bounds from points
+              const points = shape.points as Array<{ x: number; y: number }>;
+              if (points.length > 0) {
+                let minPX = points[0].x, maxPX = points[0].x;
+                let minPY = points[0].y, maxPY = points[0].y;
+                points.forEach(p => {
+                  minPX = Math.min(minPX, p.x);
+                  maxPX = Math.max(maxPX, p.x);
+                  minPY = Math.min(minPY, p.y);
+                  maxPY = Math.max(maxPY, p.y);
+                });
+                bounds = { x: minPX, y: minPY, width: maxPX - minPX, height: maxPY - minPY };
+              }
+            }
+            
+            minX = Math.min(minX, bounds.x);
+            minY = Math.min(minY, bounds.y);
+            maxX = Math.max(maxX, bounds.x + bounds.width);
+            maxY = Math.max(maxY, bounds.y + bounds.height);
           });
           
           // Calculate zoom to fit content
@@ -980,9 +1010,42 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           const shapesArray = Array.from(shapes.values()).reverse();
           
           for (const shape of shapesArray) {
-            // Simplified hit test - implement proper hit testing per shape type
-            const hit = x >= shape.x && x <= shape.x + (shape.width || 100) &&
-                       y >= shape.y && y <= shape.y + (shape.height || 100);
+            // Type-safe hit testing based on shape type
+            let hit = false;
+            
+            if ('width' in shape && 'height' in shape) {
+              // Rectangle-based shapes
+              const width = shape.width as number;
+              const height = shape.height as number;
+              hit = x >= shape.x && x <= shape.x + width &&
+                    y >= shape.y && y <= shape.y + height;
+            } else if ('points' in shape && Array.isArray(shape.points)) {
+              // For strokes, check if point is near any segment
+              const points = shape.points as Array<{ x: number; y: number }>;
+              const threshold = 10; // Hit threshold in pixels
+              
+              for (let i = 0; i < points.length - 1; i++) {
+                const p1 = points[i];
+                const p2 = points[i + 1];
+                
+                // Simple distance to line segment check
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const t = Math.max(0, Math.min(1, ((x - p1.x) * dx + (y - p1.y) * dy) / (dx * dx + dy * dy)));
+                const nearestX = p1.x + t * dx;
+                const nearestY = p1.y + t * dy;
+                const distance = Math.sqrt((x - nearestX) ** 2 + (y - nearestY) ** 2);
+                
+                if (distance <= threshold) {
+                  hit = true;
+                  break;
+                }
+              }
+            } else {
+              // Default hit test for other shapes
+              hit = Math.abs(x - shape.x) <= 50 && Math.abs(y - shape.y) <= 50;
+            }
+            
             if (hit) {
               return shape;
             }

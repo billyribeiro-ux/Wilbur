@@ -110,20 +110,13 @@ const TestTradingRoom: FC = () => {
   );
 };
 
+// Import the test harness
+import { TestWhiteboardHarness } from '../components/testing/TestWhiteboardHarness';
+
 // Test Whiteboard route wrapper (always active overlay + toolbar)
 const TestWhiteboard: FC = () => (
   <InjectTestSession>
-    {/* Placeholder for whiteboard testing - harness removed during cleanup */}
-    <div data-testid="whiteboard-test-placeholder">
-      Whiteboard test harness has been removed. Use the main whiteboard in TradingRoom.
-    </div>
-    {/* Fallback (kept) invisible canvas to ensure locator resilience if harness fails extremely early */}
-    <canvas
-      data-testid="whiteboard-canvas-fallback"
-      width={typeof window !== 'undefined' ? window.innerWidth : 800}
-      height={typeof window !== 'undefined' ? window.innerHeight : 600}
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0 }}
-    />
+    <TestWhiteboardHarness />
   </InjectTestSession>
 );
 

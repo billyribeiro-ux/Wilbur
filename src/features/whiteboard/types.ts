@@ -24,6 +24,12 @@ export interface ViewportState {
   dpr?: number; // Device pixel ratio at time of viewport capture
 }
 
+export interface ViewportTransform {
+  panX: number;
+  panY: number;
+  zoom: number;
+}
+
 // ============================================================================
 // Metadata Types
 // ============================================================================
@@ -145,6 +151,17 @@ export interface TextShape extends WhiteboardShapeBase {
   textDecoration?: 'none' | 'underline' | 'line-through';
 }
 
+export interface TextAnnotation extends TextShape {
+  // Alias for compatibility
+}
+
+export interface EmojiObject extends WhiteboardShapeBase {
+  type: 'emoji';
+  emoji: string;
+  size: number;
+  native?: boolean;
+}
+
 export interface ImageShape extends WhiteboardShapeBase {
   type: 'image';
   url: string;
@@ -208,7 +225,7 @@ export interface WhiteboardStore {
 // Tool Types
 // ============================================================================
 
-export type ToolType = 
+export type WhiteboardTool = 
   | 'select'
   | 'pen'
   | 'highlighter'
@@ -217,7 +234,15 @@ export type ToolType =
   | 'shape'
   | 'image'
   | 'pan'
-  | 'zoom';
+  | 'zoom'
+  | 'laser'
+  | 'emoji'
+  | 'rectangle'
+  | 'circle'
+  | 'arrow'
+  | 'line';
+
+export type ToolType = WhiteboardTool; // Alias for backward compatibility
 
 export interface ToolState {
   type: ToolType;
@@ -228,6 +253,13 @@ export interface ToolState {
 // ============================================================================
 // History Types
 // ============================================================================
+
+export interface WhiteboardHistoryEntry {
+  shapes: Map<string, WhiteboardShape>;
+  timestamp: number;
+  action: string;
+  data?: any;
+}
 
 export interface HistoryEntry {
   id: string;
@@ -245,6 +277,16 @@ export interface HistoryEntry {
 // ============================================================================
 // Collaboration Types (Optional)
 // ============================================================================
+
+export interface RemoteCursor {
+  x: number;
+  y: number;
+  userId: string;
+  userName?: string;
+  color: string;
+  timestamp: number;
+  tool?: WhiteboardTool;
+}
 
 export interface Collaborator {
   id: string;
@@ -315,6 +357,48 @@ export interface TestingExports {
   metrics: any;
   [key: string]: any;
 }
+
+// ============================================================================
+// Configuration Types
+// ============================================================================
+
+export interface WhiteboardConfig {
+  minZoom: number;
+  maxZoom: number;
+  enableTouch: boolean;
+  enablePen: boolean;
+  enableMouse: boolean;
+  enableKeyboard: boolean;
+  autoSave: boolean;
+  autoSaveInterval: number;
+  maxShapes: number;
+  maxHistorySize: number;
+  enableCollaboration: boolean;
+  enableGPU: boolean;
+  renderQuality: 'low' | 'medium' | 'high' | 'auto';
+}
+
+export const DEFAULT_WHITEBOARD_CONFIG: WhiteboardConfig = {
+  minZoom: 0.1,
+  maxZoom: 10,
+  enableTouch: true,
+  enablePen: true,
+  enableMouse: true,
+  enableKeyboard: true,
+  autoSave: false,
+  autoSaveInterval: 30000, // 30 seconds
+  maxShapes: 10000,
+  maxHistorySize: 100,
+  enableCollaboration: false,
+  enableGPU: true,
+  renderQuality: 'auto',
+};
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+export const EMOJI_FONT_STACK = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", "EmojiOne Color", "Twemoji Mozilla", sans-serif';
 
 // ============================================================================
 // Utility Types

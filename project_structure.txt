@@ -1,0 +1,878 @@
+.
+├── artifacts
+│   ├── preflight.txt
+│   └── REPORT.md
+├── bin
+│   └── nuclear-check.mjs
+├── certs
+│   ├── localhost-key.pem
+│   └── localhost.pem
+├── CLEANUP_SUMMARY.md
+├── docs
+│   ├── architecture.md
+│   ├── archive
+│   │   ├── CHAT_HEADER_ALIGNMENT_COMPLETE.md
+│   │   ├── CHAT_IMPROVEMENTS_COMPLETE.md
+│   │   ├── COMPLETE_LINT_REPORT.md
+│   │   ├── CSS_OVERRIDE_INVESTIGATION.md
+│   │   ├── DAILY_SETUP.md
+│   │   ├── DEPLOYMENT_READY.md
+│   │   ├── DOWNLOAD-README.md
+│   │   ├── E2E_TEST_REPORT.md
+│   │   ├── EMOJI_INTEGRATION_GUIDE.md
+│   │   ├── EMOJI_TOOL_DELIVERY.md
+│   │   ├── ERROR_FIX_COMPLETE.md
+│   │   ├── ERROR_FIX_PLAN.md
+│   │   ├── ERROR_FIX_PROGRESS_SUMMARY.md
+│   │   ├── ERROR_FIX_PROGRESS.md
+│   │   ├── FINAL_LINT_REPORT.md
+│   │   ├── FINAL_STATUS.md
+│   │   ├── FINAL-DELIVERY-SUMMARY.md
+│   │   ├── FLUENT_MIGRATION_STRATEGY.md
+│   │   ├── FLUENT_UI_COMPARISON.md
+│   │   ├── FLUENT_UI_INSTRUCTIONS.md
+│   │   ├── LINT_CLEANUP_COMPLETE.md
+│   │   ├── LINT_FIX_REPORT.md
+│   │   ├── ORCHESTRATION_COMPLETE.md
+│   │   ├── PERF_NOTES.md
+│   │   ├── PHASE-OUTPUT.md
+│   │   ├── POINTER_SSOT_COMPLETE.md
+│   │   ├── PRODUCTION_READY_REPORT.md
+│   │   ├── RECORDING-FEATURE-COMPLETE.md
+│   │   ├── REPORT_PATCH.md
+│   │   ├── REPORT.md
+│   │   ├── RUNTIME_ISSUES.md
+│   │   ├── SMART_MENU_POSITIONING_COMPLETE.md
+│   │   ├── SPOTIFY_FALLBACK_GUIDE.md
+│   │   ├── SSOT_FIX_COMPLETE.md
+│   │   ├── TESTING.md
+│   │   ├── VERIFICATION_COMPLETE.md
+│   │   └── WORLD_SPACE_CONVERSION_COMPLETE.md
+│   ├── WHITEBOARD_FINAL.md
+│   ├── whiteboard-shortcuts.md
+│   └── WHITEBOARD.md
+├── eslint.config.js
+├── FLUENT_UI_PREVIEW.tsx
+├── IMPLEMENTATION_SUMMARY.txt
+├── index.html
+├── lint.txt
+├── package-lock.json
+├── package.json
+├── perf
+│   ├── FINAL_REPORT.md
+│   └── README.md
+├── playwright.config.ts
+├── playwright.local.config.ts
+├── playwright.whiteboard.config.ts
+├── postcss.config.js
+├── PRODUCTION_READY_CHECKLIST.md
+├── project_structure.txt
+├── public
+│   ├── _headers
+│   ├── create-icons.html
+│   ├── icon-192.png
+│   ├── icon-192.png.svg
+│   ├── icon-192.svg
+│   ├── icon-512.png
+│   ├── icon-512.png.svg
+│   ├── icon-512.svg
+│   ├── index.html
+│   └── manifest.json
+├── README.md
+├── REPO_CLEANUP_COMPLETE.md
+├── REPO_CLEANUP_PLAN.md
+├── scripts
+│   ├── database-health-check.ts
+│   ├── fix-application.mjs
+│   ├── fix-ref-types.sh
+│   ├── fix-summary.sh
+│   ├── generate-icons.js
+│   ├── generate-icons.mjs
+│   ├── runE2ETests.ts
+│   ├── server-restart-verification.sh
+│   ├── test
+│   │   ├── test-auth-final.mjs
+│   │   ├── test-e2e.mjs
+│   │   └── test-whiteboard-complete.mjs
+│   ├── test-whiteboard.sh
+│   ├── validate-database-queries.js
+│   ├── validate-deployment.ts
+│   └── verify-fix.sh
+├── src
+│   ├── app
+│   │   └── App.tsx
+│   ├── components
+│   │   ├── alerts
+│   │   │   └── AlertNotification.tsx
+│   │   ├── alertsColors.ts
+│   │   ├── chat
+│   │   │   ├── chatColors.ts
+│   │   │   ├── ChatHeader.tsx
+│   │   │   ├── ChatInput.tsx
+│   │   │   ├── ChatMessage.tsx
+│   │   │   ├── ChatSettings.tsx
+│   │   │   ├── constants.ts
+│   │   │   ├── DateHeader.tsx
+│   │   │   ├── fluent
+│   │   │   │   ├── ChatHeader.fluent.tsx
+│   │   │   │   ├── ChatInput.fluent.tsx
+│   │   │   │   ├── ChatMessage.fluent.tsx
+│   │   │   │   ├── ChatPanel.fluent.tsx
+│   │   │   │   └── index.ts
+│   │   │   ├── useChatHandlers.ts
+│   │   │   ├── useFileUpload.ts
+│   │   │   └── utils.ts
+│   │   ├── chatColors.ts
+│   │   ├── ErrorBoundary.tsx
+│   │   ├── HealthCheck.tsx
+│   │   ├── hooks
+│   │   │   ├── index.ts
+│   │   │   ├── useContainerQueries.ts
+│   │   │   ├── useContainerSize.ts
+│   │   │   └── useTabsOverflow.ts
+│   │   ├── icons
+│   │   │   ├── AdminDeleteUsers.tsx
+│   │   │   ├── AdvancedBrandSettings.tsx
+│   │   │   ├── alerts.realtime.ts
+│   │   │   ├── alerts.service.ts
+│   │   │   ├── alerts.types.ts
+│   │   │   ├── AlertsComposer.adapter.tsx
+│   │   │   ├── AlertsList.tsx
+│   │   │   ├── AlertsPanel.entry.tsx
+│   │   │   ├── AlertsToolbar.tsx
+│   │   │   ├── AppIcon.tsx
+│   │   │   ├── AuthCallback.tsx
+│   │   │   ├── AvatarSelector.tsx
+│   │   │   ├── BrandHeader.tsx
+│   │   │   ├── CameraPermissionDenied.tsx
+│   │   │   ├── CameraPermissionRequest.tsx
+│   │   │   ├── CameraPreview.tsx
+│   │   │   ├── CameraWindow.tsx
+│   │   │   ├── ChatPanel.switcher.tsx
+│   │   │   ├── ChatPanel.tsx
+│   │   │   ├── ContentViewer.tsx
+│   │   │   ├── CreateRoomModal.tsx
+│   │   │   ├── CustomSoundUpload.tsx
+│   │   │   ├── DetachedChatWindow.tsx
+│   │   │   ├── EmailTestPage.tsx
+│   │   │   ├── EmailVerificationStatus.tsx
+│   │   │   ├── EmojiPicker.tsx
+│   │   │   ├── EnhancedAuthPage.tsx
+│   │   │   ├── useAlertsActions.ts
+│   │   │   └── useAlertsSelectors.ts
+│   │   ├── infrastructure.ts
+│   │   ├── modals
+│   │   │   ├── AlertReportModal.tsx
+│   │   │   ├── ArchivesModal.tsx
+│   │   │   ├── CopyNotification.tsx
+│   │   │   ├── DeleteConfirmDialog.tsx
+│   │   │   ├── FollowedUsersModal.tsx
+│   │   │   ├── GeneralSettingsModal.tsx
+│   │   │   ├── GetRandomUserModal.tsx
+│   │   │   ├── ImageModal.tsx
+│   │   │   ├── MessageNotification.tsx
+│   │   │   ├── MutedUsersModal.tsx
+│   │   │   ├── PrivateChatModal.tsx
+│   │   │   ├── UserInfoModal.tsx
+│   │   │   └── UsersPanelModal.tsx
+│   │   ├── panelColors.ts
+│   │   ├── rooms
+│   │   │   ├── DeleteRoomModal.tsx
+│   │   │   ├── roomFiles.tsx
+│   │   │   ├── RoomFilesPanel.tsx
+│   │   │   └── RoomSelector.tsx
+│   │   ├── sharing
+│   │   │   ├── ApprovalDialog.tsx
+│   │   │   ├── MicToggle.tsx
+│   │   │   ├── ResolutionMenu.tsx
+│   │   │   ├── ScreenShareTabs.tsx
+│   │   │   └── ShareDashboard.tsx
+│   │   ├── SidebarMenu.tsx
+│   │   ├── TalkingIndicator.tsx
+│   │   ├── theme
+│   │   │   ├── __tests__
+│   │   │   │   └── AdvancedBrandingSettings.test.tsx
+│   │   │   ├── AccentGradientSettings.tsx
+│   │   │   ├── AdvancedBrandingSettings.tsx
+│   │   │   ├── BrandingSettings.tsx
+│   │   │   ├── generateThemeThumbnail.ts
+│   │   │   ├── index.ts
+│   │   │   ├── ThemeButton.tsx
+│   │   │   ├── ThemeGallery.tsx
+│   │   │   ├── ThemeGalleryWithToggle.tsx
+│   │   │   ├── ThemeProvider.tsx
+│   │   │   ├── ThemeSettingsPanel.tsx
+│   │   │   └── TypographySettings.tsx
+│   │   ├── ThemeSwitcher.tsx
+│   │   ├── Toast.tsx
+│   │   ├── ToastContainer.tsx
+│   │   └── trading
+│   │       ├── constants.ts
+│   │       ├── GripIcon.tsx
+│   │       ├── HORIZONTAL_RESIZER_COMPLETE_DOCUMENTATION.md
+│   │       ├── HorizontalResizeHandle.tsx
+│   │       ├── MediaPermissionsDiagnostic.tsx
+│   │       ├── MIGRATION_GUIDE.md
+│   │       ├── NotesView.tsx
+│   │       ├── resizeUtils.ts
+│   │       ├── SettingsModal.tsx
+│   │       ├── TestTradingRoomShell.tsx
+│   │       ├── Toolbar.tsx
+│   │       ├── TradingRoom.tsx
+│   │       ├── TradingRoomContainer.tsx
+│   │       ├── TradingRoomLayout.tsx
+│   │       ├── TradingRoomWrapper.tsx
+│   │       ├── types.ts
+│   │       ├── useAudioVideoController.ts
+│   │       ├── useHotkeys.ts
+│   │       ├── useRoomPresence.ts
+│   │       ├── useScreenShareController.ts
+│   │       ├── useTradingRoomState.ts
+│   │       ├── utils
+│   │       │   └── performance.ts
+│   │       └── VerticalResizeHandle.tsx
+│   ├── config
+│   │   ├── constants.ts
+│   │   ├── environment.ts
+│   │   └── features.ts
+│   ├── contexts
+│   │   └── AuthContext.tsx
+│   ├── features
+│   │   ├── audio
+│   │   │   └── VolumeControl.tsx
+│   │   ├── chat
+│   │   │   └── chat.types.ts
+│   │   ├── Mic
+│   │   │   ├── MicToggleButton.tsx
+│   │   │   └── MicVolumeIndicator.tsx
+│   │   ├── PollModal.tsx
+│   │   ├── PostAlertModal.tsx
+│   │   ├── theme
+│   │   │   └── ThemeOpacityControl.tsx
+│   │   └── whiteboard
+│   │       ├── components
+│   │       │   ├── ClearBoardModal.tsx
+│   │       │   ├── EmojiLayer.tsx
+│   │       │   ├── EmojiPicker.tsx
+│   │       │   ├── RemoteCursors.tsx
+│   │       │   ├── TextEditor.tsx
+│   │       │   ├── WhiteboardCanvas-BACKUP.tsx
+│   │       │   ├── WhiteboardCanvas-FINAL.tsx
+│   │       │   ├── WhiteboardCanvas-FIXED.tsx
+│   │       │   ├── WhiteboardCanvas.tsx
+│   │       │   ├── WhiteboardSurface.tsx
+│   │       │   └── WhiteboardToolbar.tsx
+│   │       ├── hooks
+│   │       │   ├── useDraggable.ts
+│   │       │   ├── useKeyboardShortcuts.ts
+│   │       │   ├── usePointerDrawing.ts
+│   │       │   └── useWhiteboardTools.ts
+│   │       ├── README.md
+│   │       ├── shortcuts.md
+│   │       ├── state
+│   │       │   ├── whiteboardCollab.ts
+│   │       │   └── whiteboardStore.ts
+│   │       ├── tools
+│   │       │   ├── ArrowTool.ts
+│   │       │   ├── CircleTool.ts
+│   │       │   ├── EmojiTool.ts
+│   │       │   ├── EraserTool.ts
+│   │       │   ├── HighlighterTool.ts
+│   │       │   ├── LineTool.ts
+│   │       │   ├── PenTool.ts
+│   │       │   ├── RectangleTool.ts
+│   │       │   └── TextTool.ts
+│   │       ├── types.ts
+│   │       ├── ui
+│   │       │   ├── ClearDialog.tsx
+│   │       │   ├── EmojiPicker.tsx
+│   │       │   └── TextOptionsBar.tsx
+│   │       └── utils
+│   │           ├── debug.ts
+│   │           ├── dpr.ts
+│   │           ├── drawPrimitives.ts
+│   │           ├── exporters.ts
+│   │           ├── gradientBuilder.ts
+│   │           ├── history.ts
+│   │           ├── hitTest.ts
+│   │           ├── performance
+│   │           │   └── index.ts
+│   │           ├── pointer.ts
+│   │           ├── textLayout.ts
+│   │           └── transform.ts
+│   ├── hooks
+│   │   ├── useAdminVerification.ts
+│   │   ├── useAudioActivity.ts
+│   │   ├── useAuth.ts
+│   │   ├── useDaily.ts
+│   │   ├── usePanelResizer.ts
+│   │   ├── useResizeObserver.ts
+│   │   └── useThemeActions.ts
+│   ├── icons
+│   │   ├── fa.ts
+│   │   └── useFluentIcons.ts
+│   ├── index.css
+│   ├── layout
+│   │   ├── Footer.tsx
+│   │   ├── LayoutShell.tsx
+│   │   └── Sidebar.tsx
+│   ├── lib
+│   │   ├── archive
+│   │   │   └── logger.ts
+│   │   ├── auth.ts
+│   │   ├── cameraPermissions.ts
+│   │   ├── emailService.ts
+│   │   ├── emailServiceHealth.ts
+│   │   ├── errorBoundary.tsx
+│   │   ├── errors.ts
+│   │   ├── microphonePermissions.ts
+│   │   ├── monitoring.ts
+│   │   ├── rateLimiter.ts
+│   │   ├── supabase.ts
+│   │   └── telemetry.ts
+│   ├── main.tsx
+│   ├── pages
+│   │   └── _app.tsx
+│   ├── repositories
+│   │   └── themeRepository.ts
+│   ├── rtc
+│   │   └── rtcClient.ts
+│   ├── services
+│   │   ├── api.ts
+│   │   ├── audioContextManager.ts
+│   │   ├── audioService.ts
+│   │   ├── authService.ts
+│   │   ├── cameraService.ts
+│   │   ├── CompositorService.ts
+│   │   ├── daily.ts
+│   │   ├── integrationsApi.ts
+│   │   ├── livekit.ts
+│   │   ├── livekitToken.ts
+│   │   ├── locationService.ts
+│   │   ├── notificationService.ts
+│   │   ├── oauthApi.ts
+│   │   ├── oauthService.ts
+│   │   ├── realtime.ts
+│   │   ├── recordingService.ts
+│   │   ├── RoomRefresh.ts
+│   │   ├── roomService.ts
+│   │   ├── sessionManager.ts
+│   │   ├── soundService.ts
+│   │   ├── spotify
+│   │   │   └── types.ts
+│   │   ├── spotifyApi.ts
+│   │   ├── spotifyErrors.ts
+│   │   ├── spotifyFallback.ts
+│   │   ├── spotifyPlayer.ts
+│   │   ├── spotifySdkManager.ts
+│   │   ├── storageService.ts
+│   │   ├── tokenRefreshService.ts
+│   │   ├── trackCleanupJob.ts
+│   │   └── trackHeartbeat.ts
+│   ├── setupTests.ts
+│   ├── sharing
+│   │   ├── approvalService.ts
+│   │   ├── shareService.ts
+│   │   └── shareStore.ts
+│   ├── SpotifyButton.tsx
+│   ├── store
+│   │   ├── authStore.ts
+│   │   ├── integrationStore.ts
+│   │   ├── roomStore.ts
+│   │   ├── soundStore.ts
+│   │   ├── spotifyPlayerStore.ts
+│   │   ├── themeStore.ts
+│   │   └── toastStore.ts
+│   ├── styles
+│   │   ├── chatDesignTokens.css
+│   │   ├── chatTokens.ts
+│   │   └── theme-variables.css
+│   ├── test-utils
+│   │   ├── authDebug.ts
+│   │   ├── e2eTestSuite.ts
+│   │   ├── schemaVerification.ts
+│   │   ├── test-helpers.tsx
+│   │   ├── testRunner.ts
+│   │   ├── themeSystemTest.ts
+│   │   └── verifySchema.ts
+│   ├── tests
+│   │   └── e2e
+│   │       ├── drag-interaction.spec.ts
+│   │       └── resize.spec.ts
+│   ├── types
+│   │   ├── archive
+│   │   │   ├── database.generated.ts
+│   │   │   ├── database.types.old.ts
+│   │   │   └── README.md
+│   │   ├── branding.types.ts
+│   │   ├── database.types.ts
+│   │   ├── domain.types.ts
+│   │   └── env.d.ts
+│   └── utils
+│       ├── archive
+│       │   ├── logger.ts
+│       │   └── README.md
+│       ├── brandingUtils.ts
+│       ├── cacheManager.ts
+│       ├── cn.ts
+│       ├── contrastChecker.ts
+│       ├── cssVarManager.ts
+│       ├── deleteAllAccounts.ts
+│       ├── deleteAllUsers.ts
+│       ├── deriveScale.ts
+│       ├── env.ts
+│       ├── fileValidation.ts
+│       ├── globalErrorHandlers.ts
+│       ├── gravatar.ts
+│       ├── imageModal.ts
+│       ├── logger.ts
+│       ├── performance.ts
+│       ├── productionConsole.ts
+│       ├── productionLogger.ts
+│       ├── queryCache.ts
+│       ├── rateLimit.ts
+│       ├── themeExport.ts
+│       ├── themeValidator.ts
+│       └── type-guards.ts
+├── supabase
+│   ├── config.toml
+│   ├── functions
+│   │   ├── generate-livekit-token
+│   │   │   └── index.ts
+│   │   └── spotify-auth
+│   │       └── index.ts
+│   └── migrations
+│       └── 20251102_210600_add_missing_tables.sql
+├── tailwind.config.js
+├── TEST_ALL_TOOLS.md
+├── test-e2e.js
+├── test-results
+│   ├── whiteboard-Whiteboard-Erro-abc7c-ors-during-whiteboard-usage-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Erro-abc7c-ors-during-whiteboard-usage-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Erro-abc7c-ors-during-whiteboard-usage-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Erro-abc7c-ors-during-whiteboard-usage-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Erro-abc7c-ors-during-whiteboard-usage-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Erro-abc7c-ors-during-whiteboard-usage-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-18cad-teboard-when-button-clicked-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-18cad-teboard-when-button-clicked-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-18cad-teboard-when-button-clicked-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-18cad-teboard-when-button-clicked-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-18cad-teboard-when-button-clicked-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-18cad-teboard-when-button-clicked-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-2e8a1-der-white-canvas-not-black--chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-2e8a1-der-white-canvas-not-black--chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-2e8a1-der-white-canvas-not-black--firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-2e8a1-der-white-canvas-not-black--firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-2e8a1-der-white-canvas-not-black--webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-2e8a1-der-white-canvas-not-black--webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-517ea-etween-tools-without-errors-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-517ea-etween-tools-without-errors-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-517ea-etween-tools-without-errors-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-517ea-etween-tools-without-errors-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-517ea-etween-tools-without-errors-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-517ea-etween-tools-without-errors-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-ca63d--canvas-dimensions-with-DPR-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-ca63d--canvas-dimensions-with-DPR-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-ca63d--canvas-dimensions-with-DPR-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-ca63d--canvas-dimensions-with-DPR-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-ca63d--canvas-dimensions-with-DPR-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-Syst-ca63d--canvas-dimensions-with-DPR-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-change-drawing-color-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-change-drawing-color-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-change-drawing-color-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-change-drawing-color-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-change-drawing-color-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-change-drawing-color-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-close-whiteboard-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-close-whiteboard-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-close-whiteboard-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-close-whiteboard-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-close-whiteboard-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-close-whiteboard-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-circle-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-circle-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-circle-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-circle-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-circle-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-circle-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-line-with-line-tool-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-line-with-line-tool-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-line-with-line-tool-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-line-with-line-tool-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-line-with-line-tool-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-line-with-line-tool-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-rectangle-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-rectangle-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-rectangle-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-rectangle-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-rectangle-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-rectangle-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-with-pen-tool-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-with-pen-tool-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-with-pen-tool-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-with-pen-tool-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-with-pen-tool-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-draw-with-pen-tool-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-erase-with-eraser-tool-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-erase-with-eraser-tool-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-erase-with-eraser-tool-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-erase-with-eraser-tool-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-erase-with-eraser-tool-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-erase-with-eraser-tool-webkit-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-undo-and-redo-actions-chromium
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-undo-and-redo-actions-chromium-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-undo-and-redo-actions-firefox
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-undo-and-redo-actions-firefox-retry1
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   ├── whiteboard-Whiteboard-System-should-undo-and-redo-actions-webkit
+│   │   ├── error-context.md
+│   │   ├── test-failed-1.png
+│   │   ├── trace.zip
+│   │   └── video.webm
+│   └── whiteboard-Whiteboard-System-should-undo-and-redo-actions-webkit-retry1
+│       ├── error-context.md
+│       ├── trace.zip
+│       └── video.webm
+├── test-tools-now.mjs
+├── tests
+│   ├── e2e
+│   │   ├── basic.spec.ts
+│   │   ├── branding-smoke.spec.ts
+│   │   ├── editor-bidi.spec.ts
+│   │   ├── editor-rename-edge.spec.ts
+│   │   ├── editor-rename.spec.ts
+│   │   ├── fixtures.ts
+│   │   ├── global-setup.ts
+│   │   ├── tradingRoom.spec.ts
+│   │   ├── utils
+│   │   │   ├── helpers.ts
+│   │   │   └── logging.ts
+│   │   ├── whiteboard-simple.spec.ts
+│   │   ├── whiteboard-text-multi.spec.ts
+│   │   ├── whiteboard-tools.spec.ts
+│   │   └── whiteboard.spec.ts
+│   ├── smoke
+│   │   └── branding-modal.spec.ts
+│   ├── unit
+│   │   ├── cssVarManager.test.ts
+│   │   ├── editor.bidi.spec.ts
+│   │   ├── fileValidation.test.ts
+│   │   ├── rateLimit.test.ts
+│   │   ├── storageService.test.ts
+│   │   └── themeExport.test.ts
+│   ├── utils
+│   │   └── testIds.ts
+│   └── whiteboard-text-emoji.spec.ts
+├── tools
+│   └── diagnostics
+│       └── FILE_INDEX.txt
+├── TOOLS_WORKING_PROOF.md
+├── tsconfig.json
+├── vite.config.ts
+├── vitest.config.ts
+├── vitest.setup.ts
+└── whiteboard-test.html
+
+152 directories, 724 files
