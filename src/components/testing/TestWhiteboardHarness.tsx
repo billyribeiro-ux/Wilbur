@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { WhiteboardCanvas } from '../../features/whiteboard/components/WhiteboardCanvas';
+import { WhiteboardCanvasPro } from '../../features/whiteboard/components/WhiteboardCanvasPro';
 import { WhiteboardToolbar } from '../../features/whiteboard/components/WhiteboardToolbar';
 import { useWhiteboardStore } from '../../features/whiteboard/state/whiteboardStore';
 import { TextLayer } from '../../features/whiteboard/components/TextLayer';
@@ -117,12 +117,8 @@ export const TestWhiteboardHarness: React.FC = () => {
 
   return (
     <div className="relative w-full h-screen bg-gray-50 overflow-hidden">
-      {/* Whiteboard Canvas */}
-      <WhiteboardCanvas
-        width={window.innerWidth}
-        height={window.innerHeight}
-        canAnnotate={true}
-      />
+      {/* Whiteboard Canvas - Professional Version */}
+      <WhiteboardCanvasPro />
 
       {/* Text Layer for text editing */}
       <TextLayer />
@@ -147,7 +143,7 @@ export const TestWhiteboardHarness: React.FC = () => {
             // Handle toolbar close
             console.log('Toolbar closed');
           }}
-          canManageRoom={false}
+          canManageRoom={true}
         />
       </div>
 
