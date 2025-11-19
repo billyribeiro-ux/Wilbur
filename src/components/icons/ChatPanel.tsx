@@ -56,7 +56,7 @@ import { ChatMessage } from '../chat/ChatMessage';
 import { ChatSettings } from '../chat/ChatSettings';
 import { DateHeader } from '../chat/DateHeader';
 import { getRoleColorStyle } from '../chat/chatColors';
-import type { LoadingStates, UploadProgress, RoleStyle } from '../../features/chat/chat.types';
+import type { LoadingStates, RoleStyle } from '../../features/chat/chat.types';
 import {
   INITIAL_SCROLL_BEHAVIOR,
   LoadingState,

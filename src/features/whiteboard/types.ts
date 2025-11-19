@@ -229,12 +229,14 @@ export interface WhiteboardStore {
 
 export type WhiteboardTool = 
   | 'select'
+  | 'hand'
   | 'pen'
   | 'highlighter'
   | 'eraser'
   | 'text'
   | 'shape'
   | 'image'
+  | 'stamp'
   | 'pan'
   | 'zoom'
   | 'laser'
