@@ -41,7 +41,10 @@ export function usePointerDrawing(
       const sy = e.clientY - rect.top;
 
       const viewportState: ViewportState = {
-        ...viewportTransform,
+        x: viewportTransform.panX,
+        y: viewportTransform.panY,
+        scale: viewportTransform.zoom,
+        dpr: viewportTransform.dpr,
         width: rect.width,
         height: rect.height,
       };
@@ -78,23 +81,38 @@ export function usePointerDrawing(
 
       const now = Date.now();
 
-      const newShape: WhiteboardShape = {
-        id: currentShapeId.current,
-        type: tool,
-        color,
-        size,
-        opacity,
-        lineStyle: 'solid',
-        points: [worldPoint],
-        timestamp: now,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      if (tool === 'highlighter' && 'gradient' in newShape && 'composite' in newShape) {
-        (newShape as any).gradient = createDefaultHighlighterGradient(color);
-        (newShape as any).composite = 'multiply';
-      }
+      const newShape: WhiteboardShape = tool === 'highlighter'
+        ? {
+            id: currentShapeId.current,
+            type: 'highlighter' as const,
+            x: worldPoint.x,
+            y: worldPoint.y,
+            scale: 1,
+            rotation: 0,
+            thickness: size,
+            opacity,
+            locked: false,
+            points: [worldPoint],
+            colorGradient: createDefaultHighlighterGradient(color),
+            composite: 'multiply' as const,
+            createdAt: now,
+            updatedAt: now,
+          }
+        : {
+            id: currentShapeId.current,
+            type: 'pen' as const,
+            x: worldPoint.x,
+            y: worldPoint.y,
+            scale: 1,
+            rotation: 0,
+            color,
+            thickness: size,
+            opacity,
+            locked: false,
+            points: [worldPoint],
+            createdAt: now,
+            updatedAt: now,
+          };
 
       // Dev/test-only breadcrumbs (safe no-op in prod)
       try {
