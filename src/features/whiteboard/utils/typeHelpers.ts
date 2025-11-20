@@ -65,6 +65,40 @@ export function normalizeViewport(viewport: ViewportState | ViewportTransform): 
 }
 
 /**
+ * Convert ViewportState to ViewportTransform
+ */
+export function toViewportTransform(viewport: ViewportState): ViewportTransform {
+  return {
+    panX: viewport.panX ?? viewport.x,
+    panY: viewport.panY ?? viewport.y,
+    zoom: viewport.zoom ?? viewport.scale,
+    x: viewport.x,
+    y: viewport.y,
+    scale: viewport.scale,
+    dpr: viewport.dpr,
+    width: viewport.width,
+    height: viewport.height,
+  };
+}
+
+/**
+ * Convert ViewportTransform to ViewportState
+ */
+export function toViewportState(viewport: ViewportTransform): ViewportState {
+  return {
+    x: viewport.x ?? viewport.panX,
+    y: viewport.y ?? viewport.panY,
+    scale: viewport.scale ?? viewport.zoom,
+    panX: viewport.panX,
+    panY: viewport.panY,
+    zoom: viewport.zoom,
+    dpr: viewport.dpr,
+    width: viewport.width,
+    height: viewport.height,
+  };
+}
+
+/**
  * Safely get shape points
  */
 export function getShapePoints(shape: WhiteboardShape): Array<{ x: number; y: number }> | undefined {

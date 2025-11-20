@@ -6,7 +6,19 @@
 // WhiteboardCanvas applies DPR + viewport transform before calling these
 // ============================================================================
 
-import type { WhiteboardPoint, WhiteboardShape, ViewportState, LinearGradient, CompositeMode } from '../types';
+import type { 
+  ViewportTransform,
+  WhiteboardPoint,
+  WhiteboardAnnotation,
+  TextAnnotation,
+  WhiteboardShape,
+  ShapeObject,
+  EmojiObject,
+  ViewportState,
+  LinearGradient,
+  CompositeMode
+} from '../types';
+import { safeShapePoints, hasShapePoints } from './safeAccess';
 import { worldToScreen } from './transform';
 import { drawFormattedText } from './textLayout';
 import { buildLinearGradient, getPointsBoundingBox } from './gradientBuilder';

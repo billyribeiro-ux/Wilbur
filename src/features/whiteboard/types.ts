@@ -452,6 +452,13 @@ export const TEXT_FONT_WEIGHTS = [
 ];
 
 // ============================================================================
+// Additional Type Aliases for Compatibility
+// ============================================================================
+
+export type LinearGradient = WhiteboardGradient;
+export type CompositeMode = 'multiply' | 'normal' | 'overlay' | 'source-over' | 'source-atop';
+
+// ============================================================================
 // Utility Types
 // ============================================================================
 
