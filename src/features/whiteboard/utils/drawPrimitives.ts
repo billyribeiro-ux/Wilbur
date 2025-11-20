@@ -245,7 +245,7 @@ export function drawText(
   position: WhiteboardPoint,
   fontSize: number,
   fontFamily: string,
-  fontWeight: number,
+  fontWeight: number | 'normal' | 'bold',
   fontStyle: 'normal' | 'italic',
   textDecoration: 'none' | 'underline',
   color: string,
@@ -264,6 +264,11 @@ export function drawText(
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 
+  // Convert fontWeight to number for drawFormattedText
+  const numericFontWeight = typeof fontWeight === 'string' 
+    ? (fontWeight === 'bold' ? 700 : 400)
+    : fontWeight;
+    
   drawFormattedText(
     ctx,
     text,
@@ -272,7 +277,7 @@ export function drawText(
     {
       fontFamily,
       fontSize,
-      fontWeight,
+      fontWeight: numericFontWeight,
       fontStyle,
       textDecoration,
     },

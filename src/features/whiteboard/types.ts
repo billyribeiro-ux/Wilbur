@@ -112,6 +112,9 @@ export interface HighlighterAnnotation extends WhiteboardShapeBase {
   smoothing?: number;        // Optional smoothing factor
   capStyle?: 'round' | 'square' | 'butt';
   joinStyle?: 'round' | 'miter' | 'bevel';
+  // Compatibility properties
+  color?: string;  // Fallback color from gradient
+  size?: number;   // Alias for thickness
 }
 
 export interface PenAnnotation extends WhiteboardShapeBase {
@@ -122,6 +125,8 @@ export interface PenAnnotation extends WhiteboardShapeBase {
   smoothing?: number;
   capStyle?: 'round' | 'square' | 'butt';
   joinStyle?: 'round' | 'miter' | 'bevel';
+  // Compatibility properties
+  size?: number;   // Alias for thickness
 }
 
 export interface EraserAnnotation extends WhiteboardShapeBase {
@@ -144,6 +149,7 @@ export type WhiteboardShape =
   | TextShape
   | ImageShape
   | EmojiObject
+  | StampShape
   | ShapeObject;
 
 // ============================================================================
@@ -166,6 +172,8 @@ export interface TextShape extends WhiteboardShapeBase {
   fontStyle?: 'normal' | 'italic';
   textDecoration?: 'none' | 'underline' | 'line-through';
   points?: WhiteboardPoint[]; // For compatibility
+  // Compatibility properties
+  text?: string;  // Alias for content
 }
 
 export interface TextAnnotation extends TextShape {
@@ -180,6 +188,13 @@ export interface EmojiObject extends WhiteboardShapeBase {
   zIndex?: number; // Z-index for layering
   glyph?: string; // Alternative emoji representation
   points?: WhiteboardPoint[]; // For compatibility
+}
+
+export interface StampShape extends WhiteboardShapeBase {
+  type: 'stamp';
+  stampEmoji: string;
+  size: number;
+  points?: WhiteboardPoint[];
 }
 
 export interface ImageShape extends WhiteboardShapeBase {
@@ -203,6 +218,10 @@ export interface ShapeObject extends WhiteboardShapeBase {
   stroke?: string;
   strokeWidth?: number;
   strokeDasharray?: string;
+  // Compatibility properties
+  color?: string;      // Alias for stroke
+  size?: number;       // Alias for strokeWidth
+  fillColor?: string;  // Alias for fill
 }
 
 // ============================================================================
