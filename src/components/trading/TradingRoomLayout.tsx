@@ -383,10 +383,10 @@ export function TradingRoomLayout({
                   </WhiteboardSurface>
                 </div>
                 {/* Toolbar outside Surface to prevent overflow:hidden clipping */}
-                {state.room?.isOwner || state.room?.isModerator && (
+                {state.canManageRoom && (
                   <WhiteboardToolbar 
                     onClose={handlers.onWhiteboardClose}
-                    canManageRoom={state.room?.isOwner || state.room?.isModerator}
+                    canManageRoom={state.canManageRoom}
                   />
                 )}
               </>
