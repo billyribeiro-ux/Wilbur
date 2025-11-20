@@ -17,7 +17,7 @@ export interface FontStyle {
   fontSize: number;
   fontWeight: number;
   fontStyle: 'normal' | 'italic';
-  textDecoration: 'none' | 'underline';
+  textDecoration: 'none' | 'underline' | 'line-through';
 }
 
 export interface CaretPosition {

@@ -247,7 +247,7 @@ export function drawText(
   fontFamily: string,
   fontWeight: number | 'normal' | 'bold',
   fontStyle: 'normal' | 'italic',
-  textDecoration: 'none' | 'underline',
+  textDecoration: 'none' | 'underline' | 'line-through',
   color: string,
   opacity: number,
   viewport: ViewportState,
