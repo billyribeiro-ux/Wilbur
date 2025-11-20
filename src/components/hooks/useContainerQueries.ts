@@ -9,7 +9,7 @@ export function useContainerQueries<T extends HTMLElement>() {
   const [bp, setBp] = useState<BreakpointKey>('lg');
 
   useEffect(() => {
-    if (!ref.current) return;
+    if (!ref.current) return undefined;
     const el = ref.current;
     const ro = new ResizeObserver(([entry]) => {
       const cr = entry.contentRect;

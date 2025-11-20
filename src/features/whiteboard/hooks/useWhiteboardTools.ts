@@ -122,11 +122,11 @@ interface UseWhiteboardToolsProps {
 }
 
 interface ToolHandlers {
-  activate: (canvas?: HTMLElement) => void;
+  activate: (canvas?: HTMLElement | HTMLCanvasElement) => void;
   deactivate: () => void;
-  pointerDown: (e: PointerEvent, canvas: HTMLElement, viewport: ViewportState) => boolean;
-  pointerMove: (e: PointerEvent, canvas: HTMLElement, viewport: ViewportState) => boolean;
-  pointerUp: (e: PointerEvent, canvas: HTMLElement) => boolean;
+  pointerDown: (e: PointerEvent, canvas: HTMLElement | HTMLCanvasElement, viewport: any) => boolean;
+  pointerMove: (e: PointerEvent, canvas: HTMLElement | HTMLCanvasElement, viewport: any) => boolean;
+  pointerUp: (e: PointerEvent, canvas?: HTMLElement | HTMLCanvasElement, viewport?: any) => boolean;
   keyDown?: (e: KeyboardEvent) => boolean;
 }
 
@@ -158,7 +158,7 @@ const TOOL_CONFIG = {
 } as const;
 
 // Tool handler registry
-const TOOL_HANDLERS: Record<WhiteboardTool, ToolHandlers> = {
+const TOOL_HANDLERS: Partial<Record<WhiteboardTool, ToolHandlers>> = {
   pen: {
     activate: activatePenTool,
     deactivate: deactivatePenTool,
@@ -217,6 +217,13 @@ const TOOL_HANDLERS: Record<WhiteboardTool, ToolHandlers> = {
     keyDown: handleTextKeyDown,
   },
   stamp: {
+    activate: activateEmojiTool,
+    deactivate: deactivateEmojiTool,
+    pointerDown: handleEmojiPointerDown,
+    pointerMove: handleEmojiPointerMove,
+    pointerUp: handleEmojiPointerUp,
+  },
+  emoji: {
     activate: activateEmojiTool,
     deactivate: deactivateEmojiTool,
     pointerDown: handleEmojiPointerDown,
@@ -607,7 +614,7 @@ export function useWhiteboardTools({
    * Updates cursor based on current tool
    */
   const updateCursor = (canvas: HTMLElement, tool: WhiteboardTool) => {
-    const cursorMap: Record<WhiteboardTool, string> = {
+    const cursorMap: Partial<Record<WhiteboardTool, string>> = {
       pen: 'crosshair',
       highlighter: 'crosshair',
       eraser: 'cell',
@@ -617,9 +624,14 @@ export function useWhiteboardTools({
       arrow: 'crosshair',
       text: 'text',
       stamp: 'copy',
+      emoji: 'copy',
       laser: 'pointer',
       select: 'default',
       hand: 'grab',
+      shape: 'crosshair',
+      image: 'copy',
+      pan: 'grab',
+      zoom: 'zoom-in',
     };
     
     canvas.style.cursor = cursorMap[tool] || 'default';

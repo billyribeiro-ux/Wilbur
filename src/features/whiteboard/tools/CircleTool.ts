@@ -124,7 +124,7 @@ export function handleCirclePointerDown(
   const now = Date.now();
   toolState.currentShapeId = id;
 
-  const newShape: WhiteboardAnnotation = {
+  const newShape: any = {
     id,
     type: 'circle',
     color,
@@ -153,7 +153,7 @@ export function handleCirclePointerMove(
   if (!toolState.isActive || !toolState.isDrawing || !toolState.currentShapeId) return false;
 
   const store = useWhiteboardStore.getState();
-  const shape = store.shapes.get(toolState.currentShapeId);
+  const shape = store.shapes.get(toolState.currentShapeId) as any;
   if (!shape || !shape.points || shape.points.length < 1) return false;
 
   // Update shift lock live if user presses/releases Shift during drag
@@ -176,7 +176,7 @@ export function handleCirclePointerMove(
     if (!toolState.currentShapeId) return;
 
     const currentStore = useWhiteboardStore.getState();
-    const currentShape = currentStore.shapes.get(toolState.currentShapeId);
+    const currentShape = currentStore.shapes.get(toolState.currentShapeId) as any;
     if (!currentShape || !currentShape.points) return;
 
     currentStore.updateShape(toolState.currentShapeId, {

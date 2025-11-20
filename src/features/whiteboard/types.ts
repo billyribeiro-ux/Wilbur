@@ -165,6 +165,7 @@ export interface TextShape extends WhiteboardShapeBase {
   fontWeight?: 'normal' | 'bold' | number;
   fontStyle?: 'normal' | 'italic';
   textDecoration?: 'none' | 'underline' | 'line-through';
+  points?: WhiteboardPoint[]; // For compatibility
 }
 
 export interface TextAnnotation extends TextShape {
@@ -178,6 +179,7 @@ export interface EmojiObject extends WhiteboardShapeBase {
   native?: boolean;
   zIndex?: number; // Z-index for layering
   glyph?: string; // Alternative emoji representation
+  points?: WhiteboardPoint[]; // For compatibility
 }
 
 export interface ImageShape extends WhiteboardShapeBase {
