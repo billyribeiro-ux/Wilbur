@@ -88,12 +88,14 @@ export interface GradientStop {
   offset: number;
   color: string;
   opacity?: number;
+  alpha?: number; // Alias for opacity
 }
 
 export interface WhiteboardGradient {
   type: 'linear' | 'radial';
   stops: GradientStop[];
   angle?: number;           // For linear gradients
+  angleDeg?: number;        // Angle in degrees (alias)
   centerX?: number;          // For radial gradients
   centerY?: number;          // For radial gradients
   radius?: number;           // For radial gradients
@@ -189,6 +191,9 @@ export interface EmojiObject extends WhiteboardShapeBase {
   glyph?: string; // Alternative emoji representation
   points?: WhiteboardPoint[]; // For compatibility
 }
+
+// Alias for compatibility
+export interface EmojiAnnotation extends EmojiObject {}
 
 export interface StampShape extends WhiteboardShapeBase {
   type: 'stamp';
@@ -309,11 +314,26 @@ export interface HistoryEntry {
   timestamp: number;
   shapes: Map<string, WhiteboardShape>;
   viewport: ViewportState;
+  data?: any; // Additional data for the history entry
+  snapshot?: any; // Snapshot data for the history entry
   metadata?: {
     userId?: string;
     deviceId?: string;
     sessionId?: string;
   };
+}
+
+// ============================================================================
+// Export Types
+// ============================================================================
+
+export interface ExportOptions {
+  format: 'png' | 'jpg' | 'jpeg' | 'webp' | 'svg' | 'pdf';
+  quality?: number;
+  scale?: number;
+  background?: string;
+  includeMetadata?: boolean;
+  dpi?: number;
 }
 
 // ============================================================================

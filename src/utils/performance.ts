@@ -47,6 +47,9 @@ class ViewportCache {
       panY: viewport.panY,
       width: rect.width,
       height: rect.height,
+      x: viewport.panX,
+      y: viewport.panY,
+      scale: viewport.zoom,
     };
 
     this.cache.set(element, {
@@ -132,7 +135,10 @@ export function toViewportState(
   return {
     ...viewport,
     width: rect.width,   // CSS pixels
-    height: rect.height  // CSS pixels
+    height: rect.height, // CSS pixels
+    x: viewport.panX,
+    y: viewport.panY,
+    scale: viewport.zoom,
   };
 }
 
