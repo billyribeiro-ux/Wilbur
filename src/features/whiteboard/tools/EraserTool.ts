@@ -135,8 +135,9 @@ function rebuildSpatialIndex(): void {
   toolState.spatialIndex = new SpatialGrid();
 
   store.shapes.forEach((shape, id) => {
-    if (shape.points && shape.points.length > 0) {
-      toolState.spatialIndex!.insert(id, shape.points);
+    const shapeWithPoints = shape as any;
+    if (shapeWithPoints.points && shapeWithPoints.points.length > 0) {
+      toolState.spatialIndex!.insert(id, shapeWithPoints.points);
     }
   });
 
@@ -185,7 +186,8 @@ export function handleEraserPointerDown(
   toolState.isErasing = true;
 
   // Pre-cache viewport
-  viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
+  const vp = { panX: viewport.panX || 0, panY: viewport.panY || 0, zoom: viewport.zoom || 1 };
+  viewportCache.get(canvasElement, toViewportState(vp, canvasElement));
 
   // Rebuild spatial index if dirty
   if (toolState.indexDirty || !toolState.spatialIndex) {
@@ -264,7 +266,8 @@ function eraseAtPoint(
   viewport: ViewportState
 ): void {
   // Use cached viewport - MASSIVE performance win
-  const { rect, viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
+  const vp = { panX: viewport.panX || 0, panY: viewport.panY || 0, zoom: viewport.zoom || 1 };
+  const { rect, viewportState } = viewportCache.get(canvasElement, toViewportState(vp, canvasElement));
 
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;
@@ -306,10 +309,12 @@ function eraseAtPoint(
     if (!shape) continue;
     if (shape.locked) continue;
     if (!erasableTypes.has(shape.type)) continue;
-    if (!shape.points || shape.points.length === 0) continue;
+    
+    const shapeWithPoints = shape as any;
+    if (!shapeWithPoints.points || shapeWithPoints.points.length === 0) continue;
 
     // Check if any point is within eraser radius
-    for (const point of shape.points) {
+    for (const point of shapeWithPoints.points) {
       const sp = worldToScreen(point, viewportState);
       const dx = sp.x - screenX;
       const dy = sp.y - screenY;

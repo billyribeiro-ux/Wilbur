@@ -632,6 +632,11 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           });
         },
         
+        // Alias for saveHistory for compatibility
+        pushHistory: (action, metadata) => {
+          get().saveHistory(action, metadata);
+        },
+        
         compressHistory: () => {
           // Implement history compression to save memory
           // Keep every Nth state, remove intermediate states

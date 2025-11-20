@@ -152,7 +152,7 @@ export function handleLinePointerMove(
   }
 
   const store = useWhiteboardStore.getState();
-  const shape = store.shapes.get(toolState.currentShapeId);
+  const shape = store.shapes.get(toolState.currentShapeId) as any;
   if (!shape || !shape.points || shape.points.length < 1) return false;
 
   // CSS px pointer
@@ -177,7 +177,7 @@ export function handleLinePointerMove(
     if (!toolState.currentShapeId) return;
 
     const currentStore = useWhiteboardStore.getState();
-    const currentShape = currentStore.shapes.get(toolState.currentShapeId);
+    const currentShape = currentStore.shapes.get(toolState.currentShapeId) as any;
     if (!currentShape || !currentShape.points) return;
 
     currentStore.updateShape(toolState.currentShapeId, {
