@@ -40,7 +40,7 @@ export function TextOptionsBar() {
         onChange={(e) => setFontFamily(e.target.value)}
         className="px-3 py-1.5 bg-slate-700 text-white text-sm rounded border border-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       >
-        {TEXT_FONT_FAMILIES.map((font) => (
+        {TEXT_FONT_FAMILIES.map((font: { value: string; name: string }) => (
           <option key={font.value} value={font.value}>
             {font.name}
           </option>
@@ -53,7 +53,7 @@ export function TextOptionsBar() {
         onChange={(e) => setFontSize(Number(e.target.value))}
         className="px-3 py-1.5 bg-slate-700 text-white text-sm rounded border border-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       >
-        {TEXT_FONT_SIZES.map((size) => (
+        {TEXT_FONT_SIZES.map((size: number) => (
           <option key={size} value={size}>
             {size}px
           </option>
@@ -66,7 +66,7 @@ export function TextOptionsBar() {
         onChange={(e) => setFontWeight(Number(e.target.value))}
         className="px-3 py-1.5 bg-slate-700 text-white text-sm rounded border border-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       >
-        {TEXT_FONT_WEIGHTS.map((weight) => (
+        {TEXT_FONT_WEIGHTS.map((weight: { value: number; name: string }) => (
           <option key={weight.value} value={weight.value}>
             {weight.name}
           </option>

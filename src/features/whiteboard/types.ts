@@ -25,12 +25,22 @@ export interface ViewportState {
   zoom?: number; // Alias for scale (for compatibility)
   width?: number; // Canvas width
   height?: number; // Canvas height
+  // Aliases for compatibility with ViewportTransform
+  panX?: number; // Alias for x
+  panY?: number; // Alias for y
 }
 
 export interface ViewportTransform {
   panX: number;
   panY: number;
   zoom: number;
+  // Aliases for compatibility with ViewportState
+  x?: number; // Alias for panX
+  y?: number; // Alias for panY
+  scale?: number; // Alias for zoom
+  dpr?: number;
+  width?: number;
+  height?: number;
 }
 
 // ============================================================================
@@ -413,7 +423,33 @@ export const DEFAULT_WHITEBOARD_CONFIG: WhiteboardConfig = {
 // Constants
 // ============================================================================
 
-export const EMOJI_FONT_STACK = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", "EmojiOne Color", "Twemoji Mozilla", sans-serif';
+export const EMOJI_FONT_STACK = `"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji","EmojiOne Color","Twitter Color Emoji", "Twemoji Mozilla",system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+
+// ============================================================================
+// Text Tool Constants
+// ============================================================================
+
+export const TEXT_FONT_FAMILIES = [
+  { value: 'Arial, sans-serif', name: 'Arial' },
+  { value: 'Helvetica, sans-serif', name: 'Helvetica' },
+  { value: 'Georgia, serif', name: 'Georgia' },
+  { value: 'Times New Roman, serif', name: 'Times' },
+  { value: 'Courier New, monospace', name: 'Courier' },
+  { value: 'Monaco, monospace', name: 'Monaco' },
+  { value: 'Comic Sans MS, cursive', name: 'Comic Sans' },
+];
+
+export const TEXT_FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72];
+
+export const TEXT_FONT_WEIGHTS = [
+  { value: 100, name: 'Thin' },
+  { value: 300, name: 'Light' },
+  { value: 400, name: 'Regular' },
+  { value: 500, name: 'Medium' },
+  { value: 600, name: 'Semibold' },
+  { value: 700, name: 'Bold' },
+  { value: 900, name: 'Black' },
+];
 
 // ============================================================================
 // Utility Types

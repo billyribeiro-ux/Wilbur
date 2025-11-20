@@ -4,9 +4,10 @@
 // Renders emojis with selection handles, supports transforms
 // ============================================================================
 
-import { useEffect, useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useWhiteboardStore } from '../state/whiteboardStore';
 import { worldToScreen } from '../utils/transform';
+import { getViewportZoom } from '../utils/typeHelpers';
 import { getSelectedEmoji } from '../tools/EmojiTool';
 import { EMOJI_FONT_STACK } from '../types';
 import type { EmojiObject, ViewportState } from '../types';
@@ -102,7 +103,7 @@ function renderEmoji(
   
   // Size in CSS pixels; scales with viewport zoom and emoji.scale
   const baseSize = 48;
-  const scaledSize = baseSize * emoji.scale * viewport.zoom;
+  const scaledSize = baseSize * emoji.scale * getViewportZoom(viewport);
   
   // Apply opacity
   ctx.globalAlpha = emoji.opacity;
@@ -113,11 +114,12 @@ function renderEmoji(
   ctx.textBaseline = 'middle';
   
   // Render emoji glyph
+  const glyph = emoji.glyph || '❓'; // Fallback to question mark if undefined
   if (useTwemoji) {
     // TODO: Implement Twemoji rasterization fallback
-    ctx.fillText(emoji.glyph, 0, 0);
+    ctx.fillText(glyph, 0, 0);
   } else {
-    ctx.fillText(emoji.glyph, 0, 0);
+    ctx.fillText(glyph, 0, 0);
   }
   
   ctx.restore();
@@ -143,7 +145,7 @@ function renderSelectionHandles(
   ctx.rotate(emoji.rotation);
   
   const baseSize = 48;
-  const scaledSize = baseSize * emoji.scale * viewport.zoom;
+  const scaledSize = baseSize * emoji.scale * getViewportZoom(viewport);
   const halfSize = scaledSize / 2;
   
   // Draw bounding box
