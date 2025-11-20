@@ -239,6 +239,9 @@ export function WhiteboardCanvasPro({
   height, 
   canAnnotate = true 
 }: WhiteboardCanvasProProps = {}) {
+  // Container ref for resize observer
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   // Canvas layers
   const backgroundCanvasRef = useRef<HTMLCanvasElement>(null);
   const shapesCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -346,66 +349,6 @@ export function WhiteboardCanvasPro({
     
     return undefined;
   }, [width, height]);
-  
-  // ============================================================================
-  // Resize Observer to handle canvas dimension changes
-  // ============================================================================
-  
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width: newWidth, height: newHeight } = entry.contentRect;
-        
-        // Update all canvas dimensions
-        const canvases = [
-          backgroundCanvasRef.current,
-          shapesCanvasRef.current,
-          previewCanvasRef.current,
-          uiCanvasRef.current
-        ];
-        
-        canvases.forEach(canvas => {
-          if (canvas) {
-            const dpr = window.devicePixelRatio || 1;
-            
-            // Update CSS dimensions
-            canvas.style.width = `${newWidth}px`;
-            canvas.style.height = `${newHeight}px`;
-            
-            // Update canvas buffer dimensions
-            canvas.width = newWidth * dpr;
-            canvas.height = newHeight * dpr;
-            
-            // Update context scale
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.scale(dpr, dpr);
-            }
-          }
-        });
-        
-        // Update viewport in store
-        const viewport = useWhiteboardStore.getState().viewport;
-        useWhiteboardStore.getState().updateViewport({
-          ...viewport,
-          canvasWidth: newWidth,
-          canvasHeight: newHeight,
-          dpr: window.devicePixelRatio || 1
-        });
-        
-        // Re-render all layers
-        renderShapesLayer();
-        renderUILayer();
-      }
-    });
-    
-    observer.observe(container);
-    
-    return () => observer.disconnect();
-  }, [renderShapesLayer, renderUILayer]);
 
   // ============================================================================
   // Tool Activation/Deactivation
@@ -821,6 +764,66 @@ export function WhiteboardCanvasPro({
   }, [eraserPosition, tool, renderUILayer]);
 
   // ============================================================================
+  // Resize Observer to handle canvas dimension changes
+  // ============================================================================
+  
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width: newWidth, height: newHeight } = entry.contentRect;
+        
+        // Update all canvas dimensions
+        const canvases = [
+          backgroundCanvasRef.current,
+          shapesCanvasRef.current,
+          previewCanvasRef.current,
+          uiCanvasRef.current
+        ];
+        
+        canvases.forEach(canvas => {
+          if (canvas) {
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Update CSS dimensions
+            canvas.style.width = `${newWidth}px`;
+            canvas.style.height = `${newHeight}px`;
+            
+            // Update canvas buffer dimensions
+            canvas.width = newWidth * dpr;
+            canvas.height = newHeight * dpr;
+            
+            // Update context scale
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.scale(dpr, dpr);
+            }
+          }
+        });
+        
+        // Update viewport in store
+        const viewport = useWhiteboardStore.getState().viewport;
+        useWhiteboardStore.getState().updateViewport({
+          ...viewport,
+          canvasWidth: newWidth,
+          canvasHeight: newHeight,
+          dpr: window.devicePixelRatio || 1
+        });
+        
+        // Re-render all layers
+        renderShapesLayer();
+        renderUILayer();
+      }
+    });
+    
+    observer.observe(container);
+    
+    return () => observer.disconnect();
+  }, [renderShapesLayer, renderUILayer]);
+
+  // ============================================================================
   // Event Handlers
   // ============================================================================
   
@@ -1119,7 +1122,7 @@ export function WhiteboardCanvasPro({
   }, [tool, undo, redo, clearShapes]);
   
   return (
-    <div className="relative w-full h-full">
+    <div ref={containerRef} className="relative w-full h-full">
       {/* Background Layer */}
       <canvas
         ref={backgroundCanvasRef}

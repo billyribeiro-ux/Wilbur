@@ -2,7 +2,7 @@
 // LASER TOOL - Temporary pointer for presentations
 // ============================================================================
 
-import type { ViewportTransform, WhiteboardPoint } from '../types';
+import type { ViewportTransform } from '../types';
 import { screenToWorld } from '../utils/transform';
 import { useWhiteboardStore } from '../state/whiteboardStore';
 
@@ -112,9 +112,9 @@ export function handleLaserPointerMove(
 }
 
 export function handleLaserPointerUp(
-  e: PointerEvent,
-  canvas: HTMLCanvasElement,
-  viewportTransform: ViewportTransform
+  _e: PointerEvent,
+  _canvas: HTMLCanvasElement,
+  _viewportTransform: ViewportTransform
 ): boolean {
   if (!toolState.active) return false;
   
@@ -150,7 +150,7 @@ export function drawLaserPointer(
 ): void {
   if (toolState.trail.length === 0) return;
   
-  const now = Date.now();
+  // const now = Date.now(); // Reserved for future animation
   const store = useWhiteboardStore.getState();
   const color = store.laserColor || '#FF0000';
   
@@ -163,8 +163,9 @@ export function drawLaserPointer(
   // Draw trail
   ctx.beginPath();
   toolState.trail.forEach((point, index) => {
-    const age = now - point.timestamp;
-    const opacity = Math.max(0, 1 - age / 1000);
+    // Age-based fading removed for simplicity
+    // const age = now - point.timestamp;
+    // const opacity = Math.max(0, 1 - age / 1000);
     
     if (index === 0) {
       ctx.moveTo(point.x, point.y);

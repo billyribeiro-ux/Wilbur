@@ -169,10 +169,14 @@ interface WhiteboardStore {
   
   selectShape: (id: string) => void;
   selectShapes: (ids: string[]) => void;
+  setSelectedShapeIds: (ids: Set<string>) => void; // For compatibility
   deselectShape: (id: string) => void;
   deselectShapes: (ids: string[]) => void;
   clearSelection: () => void;
   selectAll: () => void;
+  
+  // Text editing
+  setEditingTextId: (id: string | null) => void;
   
   // ============================================================================
   // Actions - History (with compression)
@@ -194,6 +198,7 @@ interface WhiteboardStore {
   fitToContent: () => void;
   updateDPR: (dpr: number) => void;
   setCanvasSize: (width: number, height: number) => void;
+  updateViewport: (viewport: Partial<ViewportTransformWithDPR>) => void;
   
   // ============================================================================
   // Actions - Collaboration
@@ -252,6 +257,7 @@ interface WhiteboardStore {
   
   // Laser
   updateLaserTrail: (point: { x: number; y: number }) => void;
+  setLaserTrail: (trail: Array<{ x: number; y: number; timestamp: number }>) => void;
   clearLaserTrail: () => void;
   setLaserVisible: (visible: boolean) => void;
   setLaserColor: (color: string) => void;
@@ -549,6 +555,26 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           });
         },
         
+        // Compatibility method for external tools
+        setSelectedShapeIds: (ids) => {
+          set((state) => {
+            state.selectedShapeIds = new Set(ids);
+          });
+        },
+        
+        // Text editing
+        setEditingTextId: (id) => {
+          set((state) => {
+            // Store editing text ID in a new property or handle it
+            // For now, we'll clear selection and select only the text shape
+            if (id) {
+              state.selectedShapeIds.clear();
+              state.selectedShapeIds.add(id);
+              // You may want to add an editingTextId property to the state
+            }
+          });
+        },
+        
         // ============================================================================
         // History Actions with Compression
         // ============================================================================
@@ -732,6 +758,12 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           });
         },
         
+        updateViewport: (viewport) => {
+          set((state) => {
+            Object.assign(state.viewport, viewport);
+          });
+        },
+        
         // ============================================================================
         // Collaboration Actions
         // ============================================================================
@@ -909,6 +941,12 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
             
             // Remove old points (older than 500ms)
             state.laserTrail = state.laserTrail.filter(p => now - p.timestamp < 500);
+          });
+        },
+        
+        setLaserTrail: (trail) => {
+          set((state) => {
+            state.laserTrail = trail;
           });
         },
         

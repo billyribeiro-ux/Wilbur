@@ -111,26 +111,29 @@ export function handleSelectPointerDown(
     }
   });
   
-  if (hitShape) {
+  if (hitShape !== null) {
+    const shape = hitShape as WhiteboardShape; // Explicit type assertion
     // Check for double-click on text
     const now = Date.now();
-    if (hitShape.type === 'text' && 
+    if ('type' in shape && shape.type === 'text' && 
         now - toolState.lastClickTime < 300 && 
-        toolState.lastClickTarget === hitShape.id) {
+        'id' in shape && toolState.lastClickTarget === shape.id) {
       // Trigger text edit
-      store.setEditingTextId(hitShape.id);
+      store.setEditingTextId(shape.id);
       return true;
     }
     
     toolState.lastClickTime = now;
-    toolState.lastClickTarget = hitShape.id;
-    
-    // Select shape
-    if (!e.shiftKey) {
-      toolState.selectedShapes.clear();
+    if ('id' in shape) {
+      toolState.lastClickTarget = shape.id;
+      
+      // Select shape
+      if (!e.shiftKey) {
+        toolState.selectedShapes.clear();
+      }
+      toolState.selectedShapes.add(shape.id);
+      store.setSelectedShapeIds(toolState.selectedShapes);
     }
-    toolState.selectedShapes.add(hitShape.id);
-    store.setSelectedShapeIds(toolState.selectedShapes);
     
     // Start drag
     toolState.dragging = true;
