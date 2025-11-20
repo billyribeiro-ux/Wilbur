@@ -49,7 +49,7 @@ export function TextEditor({
     ...viewport,
     width: viewportWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1920),
     height: viewportHeight ?? (typeof window !== 'undefined' ? window.innerHeight : 1080),
-  });
+  } as any);
   
   useEffect(() => {
     // Focus textarea on mount

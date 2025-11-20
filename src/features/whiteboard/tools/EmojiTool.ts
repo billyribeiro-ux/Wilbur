@@ -132,12 +132,14 @@ export function insertEmoji(glyph: string, at: { x: number; y: number }) {
     ...viewport,
     width,
     height,
-  });
+  } as any);
 
-  const emoji: EmojiAnnotation = {
+  const emoji = {
     id: `emoji-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    type: 'stamp',
+    type: 'emoji',
+    emoji: glyph,
     glyph,
+    size: 32,
     x: worldPos.x,
     y: worldPos.y,
     scale: 1,
@@ -146,7 +148,7 @@ export function insertEmoji(glyph: string, at: { x: number; y: number }) {
     locked: false,
     createdAt: Date.now(),
     updatedAt: Date.now(),
-  };
+  } as any;
   
   store.addEmoji(emoji);
   store.pushHistory('insert-emoji', { emoji });
@@ -170,7 +172,8 @@ export function handleEmojiPointerDown(
   if (!toolState.isActive) return false;
 
   // Use cached viewport - no getBoundingClientRect() spam!
-  const { rect, viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
+  const vp = { panX: viewport.panX || 0, panY: viewport.panY || 0, zoom: viewport.zoom || 1 };
+  const { rect, viewportState } = viewportCache.get(canvasElement, toViewportState(vp, canvasElement));
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;
 
@@ -298,7 +301,8 @@ export function handleEmojiPointerMove(
   if (!toolState.isActive) return false;
 
   // Use cached viewport - MASSIVE performance win!
-  const { rect, viewportState } = viewportCache.get(canvasElement, toViewportState(viewport, canvasElement));
+  const vp = { panX: viewport.panX || 0, panY: viewport.panY || 0, zoom: viewport.zoom || 1 };
+  const { rect, viewportState } = viewportCache.get(canvasElement, toViewportState(vp, canvasElement));
   const screenX = e.clientX - rect.left;
   const screenY = e.clientY - rect.top;
 

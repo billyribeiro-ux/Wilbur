@@ -30,9 +30,12 @@ export function commitBatch(endSnapshot: Map<string, WhiteboardAnnotation>): His
     return null;
   }
   
-  const entry: HistoryEntry = {
+  const entry: any = {
+    id: `history-${Date.now()}`,
     action: currentBatch.action,
     timestamp: currentBatch.startTime,
+    shapes: new Map(endSnapshot),
+    viewport: {} as any,
     data: {
       before: currentBatch.startSnapshot,
       after: new Map(endSnapshot),

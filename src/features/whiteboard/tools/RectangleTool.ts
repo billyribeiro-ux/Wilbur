@@ -124,7 +124,7 @@ export function handleRectanglePointerDown(
   const now = Date.now();
   toolState.currentShapeId = id;
 
-  const newShape: WhiteboardAnnotation = {
+  const newShape: any = {
     id,
     type: 'rectangle',
     color,

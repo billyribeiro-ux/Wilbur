@@ -118,7 +118,7 @@ export function handleLinePointerDown(
   const id = makeId();
   toolState.currentShapeId = id;
 
-  const newShape: WhiteboardAnnotation = {
+  const newShape: any = {
     id,
     type: 'line',
     color,

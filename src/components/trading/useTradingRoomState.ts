@@ -550,7 +550,7 @@ export function useTradingRoomState(): UseTradingRoomStateReturn {
   return {
     // Store selectors
     room,
-    user: user as UserRow | undefined, // User from auth store matches UserRow structure
+    user: user as unknown as UserRow | undefined, // User from auth store matches UserRow structure
     colors,
     typography,
     canRecord,
