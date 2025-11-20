@@ -175,21 +175,31 @@ export function TradingRoomContainer({
 
         // ENTERPRISE PATTERN: Validate membership with Supabase before granting permissions
         console.log('[TradingRoom] 🔐 Validating user membership and role...');
-        const membership = await ensureUserRoomMembership(user.id, room.id);
+        const membershipResult = await import('../../services/membershipService').then(m => 
+          m.validateMembership(user.id, room.id)
+        );
         if (cancelled) return;
 
         // CRITICAL: Set the membership in the store so canManageRoom works
-        if (membership) {
-          console.log('[TradingRoom] ✅ Membership validated - Role:', membership.role);
-          setMembership(membership);
+        if (membershipResult.isValid && membershipResult.membership) {
+          console.log('[TradingRoom] ✅ Membership validated - Role:', membershipResult.membership.role);
+          setMembership(membershipResult.membership);
         } else {
           console.error('[TradingRoom] ❌ MEMBERSHIP VALIDATION FAILED');
+          console.error('[TradingRoom] 🚨 Error:', membershipResult.error);
+          console.error('[TradingRoom] 🚨 Error Code:', membershipResult.errorCode);
           console.error('[TradingRoom] 🚨 User will NOT have admin/management permissions');
-          console.error('[TradingRoom] 🚨 Check:');
-          console.error('[TradingRoom]    1. RLS policies on room_memberships table');
-          console.error('[TradingRoom]    2. User exists in database');
-          console.error('[TradingRoom]    3. Room exists in database');
-          console.error('[TradingRoom]    4. Network connectivity to Supabase');
+          console.error('[TradingRoom] 🚨 Solutions:');
+          if (membershipResult.errorCode === 'NOT_FOUND') {
+            console.error('[TradingRoom]    → Run ENTERPRISE_FIX_ROOM_MEMBERSHIP.sql');
+            console.error('[TradingRoom]    → Or invite user through admin panel');
+          } else if (membershipResult.errorCode === 'RLS_DENIED') {
+            console.error('[TradingRoom]    → Check RLS policies on room_memberships table');
+            console.error('[TradingRoom]    → Verify user has proper authentication');
+          } else {
+            console.error('[TradingRoom]    → Check network connectivity to Supabase');
+            console.error('[TradingRoom]    → Verify Supabase credentials in .env.local');
+          }
           // Still set undefined to prevent stale data
           setMembership(undefined);
         }
