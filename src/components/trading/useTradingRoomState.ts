@@ -201,6 +201,13 @@ export function useTradingRoomState(): UseTradingRoomStateReturn {
   // =========================================================
   const [isWhiteboardActive, setIsWhiteboardActive] = useState(false);
   const [whiteboardEvents, setWhiteboardEvents] = useState<WhiteboardEvent[]>([]);
+  
+  // Debug: Log whiteboard state
+  console.log('[TradingRoomState] 🎨 Whiteboard:', {
+    canManageRoom,
+    isWhiteboardActive,
+    role: membership?.role
+  });
 
   // Handle whiteboard events
   const handleWhiteboardEvent = useCallback((event: WhiteboardEvent) => {
