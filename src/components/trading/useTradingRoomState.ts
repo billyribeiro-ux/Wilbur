@@ -206,7 +206,9 @@ export function useTradingRoomState(): UseTradingRoomStateReturn {
   console.log('[TradingRoomState] 🎨 Whiteboard:', {
     canManageRoom,
     isWhiteboardActive,
-    role: membership?.role
+    role: membership?.role,
+    size,
+    sizeValid: size && size.w > 0 && size.h > 0
   });
 
   // Handle whiteboard events

@@ -383,12 +383,11 @@ export function TradingRoomLayout({
                   </WhiteboardSurface>
                 </div>
                 {/* Toolbar outside Surface to prevent overflow:hidden clipping */}
-                {state.canManageRoom && (
-                  <WhiteboardToolbar 
-                    onClose={handlers.onWhiteboardClose}
-                    canManageRoom={state.canManageRoom}
-                  />
-                )}
+                {/* TEMPORARY: Show toolbar even without canManageRoom for testing */}
+                <WhiteboardToolbar 
+                  onClose={handlers.onWhiteboardClose}
+                  canManageRoom={true}
+                />
               </>
             )}
           </div>
