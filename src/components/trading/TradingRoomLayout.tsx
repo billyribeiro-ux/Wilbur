@@ -368,25 +368,28 @@ export function TradingRoomLayout({
             
             {/* Whiteboard - Professional Architecture with Surface + CanvasPro + Toolbar */}
             {state.isWhiteboardActive && state.size && state.size.w > 0 && state.size.h > 0 && (
-              <div className="absolute inset-0 z-50 pointer-events-none">
-                <WhiteboardSurface 
-                  width={state.size.w} 
-                  height={state.size.h}
-                  className="pointer-events-auto"
-                >
-                  <WhiteboardCanvasPro 
-                    width={state.size.w}
+              <>
+                <div className="absolute inset-0 z-50 pointer-events-none">
+                  <WhiteboardSurface 
+                    width={state.size.w} 
                     height={state.size.h}
-                    canAnnotate={state.canManageRoom}
-                  />
-                  {state.canManageRoom && (
-                    <WhiteboardToolbar 
-                      onClose={handlers.onWhiteboardClose}
-                      canManageRoom={state.canManageRoom}
+                    className="pointer-events-auto"
+                  >
+                    <WhiteboardCanvasPro 
+                      width={state.size.w}
+                      height={state.size.h}
+                      canAnnotate={state.canManageRoom}
                     />
-                  )}
-                </WhiteboardSurface>
-              </div>
+                  </WhiteboardSurface>
+                </div>
+                {/* Toolbar outside Surface to prevent overflow:hidden clipping */}
+                {state.canManageRoom && (
+                  <WhiteboardToolbar 
+                    onClose={handlers.onWhiteboardClose}
+                    canManageRoom={state.canManageRoom}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
