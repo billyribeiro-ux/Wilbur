@@ -148,14 +148,24 @@ class SpatialIndex {
   remove(shapeId: string): void {
     const shape = this.shapes.get(shapeId);
     if (!shape) return;
-
+    
+    // Clean up grid cells to prevent memory leak
     const bounds = this.getShapeBounds(shape);
     for (let x = bounds.minX; x <= bounds.maxX; x += this.gridSize) {
       for (let y = bounds.minY; y <= bounds.maxY; y += this.gridSize) {
         const key = this.getGridKey(x, y);
-        this.grid.get(key)?.delete(shapeId);
+        const cell = this.grid.get(key);
+        if (cell) {
+          cell.delete(shapeId);
+          // Remove empty cells to prevent memory leak
+          if (cell.size === 0) {
+            this.grid.delete(key);
+          }
+        }
       }
     }
+    
+    // Remove from shapes map
     this.shapes.delete(shapeId);
   }
 
@@ -336,6 +346,66 @@ export function WhiteboardCanvasPro({
     
     return undefined;
   }, [width, height]);
+  
+  // ============================================================================
+  // Resize Observer to handle canvas dimension changes
+  // ============================================================================
+  
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width: newWidth, height: newHeight } = entry.contentRect;
+        
+        // Update all canvas dimensions
+        const canvases = [
+          backgroundCanvasRef.current,
+          shapesCanvasRef.current,
+          previewCanvasRef.current,
+          uiCanvasRef.current
+        ];
+        
+        canvases.forEach(canvas => {
+          if (canvas) {
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Update CSS dimensions
+            canvas.style.width = `${newWidth}px`;
+            canvas.style.height = `${newHeight}px`;
+            
+            // Update canvas buffer dimensions
+            canvas.width = newWidth * dpr;
+            canvas.height = newHeight * dpr;
+            
+            // Update context scale
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.scale(dpr, dpr);
+            }
+          }
+        });
+        
+        // Update viewport in store
+        const viewport = useWhiteboardStore.getState().viewport;
+        useWhiteboardStore.getState().updateViewport({
+          ...viewport,
+          canvasWidth: newWidth,
+          canvasHeight: newHeight,
+          dpr: window.devicePixelRatio || 1
+        });
+        
+        // Re-render all layers
+        renderShapesLayer();
+        renderUILayer();
+      }
+    });
+    
+    observer.observe(container);
+    
+    return () => observer.disconnect();
+  }, [renderShapesLayer, renderUILayer]);
 
   // ============================================================================
   // Tool Activation/Deactivation

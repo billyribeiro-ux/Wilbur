@@ -60,9 +60,21 @@ export const supabase: any = isE2ERoute
     persistSession: true,
     detectSessionInUrl: true,
     
-    // Do not use localStorage for session storage to prevent XSS
-    storage: undefined,
-    storageKey: undefined, // Remove dynamic storage key
+    // Custom secure storage to prevent XSS attacks
+    storage: {
+      getItem: (_key: string) => {
+        // Return null to force Supabase to use memory-only storage
+        // Real session is managed through secure httpOnly cookies
+        return null;
+      },
+      setItem: (_key: string, _value: string) => {
+        // No-op: prevent localStorage usage
+        // Session persisted through secure backend
+      },
+      removeItem: (_key: string) => {
+        // No-op: prevent localStorage usage
+      }
+    },
     
     // Security settings
     flowType: 'pkce', // More secure auth flow

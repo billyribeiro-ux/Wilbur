@@ -37,8 +37,10 @@ export function usePointerDrawing(
       if (!canvas) return null;
 
       const rect = canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
+      // Apply DPR scaling for high-DPI displays
+      // Canvas.width/rect.width gives us the actual DPR scale
+      const sx = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const sy = (e.clientY - rect.top) * (canvas.height / rect.height);
 
       const viewportState: ViewportState = {
         x: viewportTransform.panX,
