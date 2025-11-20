@@ -201,19 +201,6 @@ export function useTradingRoomState(): UseTradingRoomStateReturn {
   // =========================================================
   const [isWhiteboardActive, setIsWhiteboardActive] = useState(false);
   const [whiteboardEvents, setWhiteboardEvents] = useState<WhiteboardEvent[]>([]);
-  
-  // Enterprise pattern: Whiteboard state validation (development only)
-  useEffect(() => {
-    if (import.meta.env.MODE === 'development') {
-      console.log('[TradingRoomState] 🎨 Whiteboard:', {
-        canManageRoom,
-        isWhiteboardActive,
-        role: membership?.role,
-        size,
-        sizeValid: size && size.w > 0 && size.h > 0
-      });
-    }
-  }, [canManageRoom, isWhiteboardActive, membership?.role, size]);
 
   // Handle whiteboard events
   const handleWhiteboardEvent = useCallback((event: WhiteboardEvent) => {
@@ -247,6 +234,19 @@ export function useTradingRoomState(): UseTradingRoomStateReturn {
   const containerStyle = useMemo(() => {
     return {};
   }, []);
+
+  // Enterprise pattern: Whiteboard state validation (development only)
+  useEffect(() => {
+    if (import.meta.env.MODE === 'development') {
+      console.log('[TradingRoomState] 🎨 Whiteboard:', {
+        canManageRoom,
+        isWhiteboardActive,
+        role: membership?.role,
+        size,
+        sizeValid: size && size.w > 0 && size.h > 0
+      });
+    }
+  }, [canManageRoom, isWhiteboardActive, membership?.role, size]);
 
   // =========================================================
   // LAYOUT STATE - ENTERPRISE RESIZE SYSTEM
