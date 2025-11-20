@@ -160,10 +160,7 @@ export const useRoomStore = create<RoomState>((set: (state: Partial<RoomState> |
   },
   canManageRoom: () => {
     // Only admin can manage room (edit settings, etc.)
-    const membership = get().membership;
-    const result = membership?.role === 'admin';
-    console.log('[RoomStore] canManageRoom check:', { membership, result });
-    return result;
+    return get().membership?.role === 'admin';
   },
   canDelete: () => {
     // Only admin can delete content
@@ -372,7 +369,7 @@ export const useRoomStore = create<RoomState>((set: (state: Partial<RoomState> |
     })),
 
   setMembership: (membership: RoomMembership | undefined) => {
-    console.log('[RoomStore] setMembership called with:', membership);
+    console.log('[RoomStore] ✅ setMembership:', membership?.role || 'none');
     set({ membership });
   },
   setViewers: (count: number) => set({ viewers: count }),

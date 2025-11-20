@@ -166,8 +166,9 @@ export function useTradingRoomState(): UseTradingRoomStateReturn {
   const { colors, typography } = useThemeStore();
 
   const room = useRoomStore((s) => s.currentRoom);
-  const canRecord = useRoomStore((s) => s.canRecord());
-  const canManageRoom = useRoomStore((s) => s.canManageRoom());
+  const membership = useRoomStore((s) => s.membership);
+  const canRecord = membership?.role === 'admin' || membership?.role === 'member';
+  const canManageRoom = membership?.role === 'admin';
   const isRecording = useRoomStore((s) => s.isRecording);
   const isMicEnabled = useRoomStore((s) => s.isMicEnabled);
 
