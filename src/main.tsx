@@ -17,6 +17,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { initializeProductionConsole } from './utils/productionConsole';
 initializeProductionConsole();
+import { initializeGlobalErrorHandlers } from './utils/globalErrorHandlers';
 
 // ═══════════════════════════════════════════════════════════════
 // 🛡️ GLOBAL ERROR HANDLERS - Microsoft Production Standard
@@ -63,8 +64,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import './index.css'; // ✅ Global Fluent Hybrid stylesheet
 import { validateEnvironmentConfig, logEnvironmentConfig } from "./config/environment";
 import { supabase } from './lib/supabase';
-import { initializeSoundService } from './services/soundService';
-import { initializeGlobalErrorHandlers } from './utils/globalErrorHandlers';
 
 // Validate environment configuration on startup
 validateEnvironmentConfig();
